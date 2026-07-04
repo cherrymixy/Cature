@@ -54,10 +54,6 @@ public struct RootView: View {
                 }
                 .mapStyle(.standard(elevation: .flat, pointsOfInterest: .excludingAll))
                 .grayscale(1.0)   // 지도 레이어만 모노톤
-                .mapControls {
-                    MapUserLocationButton()
-                    MapCompass()
-                }
                 .overlay {
                     // 컬러 마커 — grayscale 밖 오버레이에 좌표변환으로 배치(지도는 흑백, 마커만 컬러)
                     let _ = mapCameraTick   // 카메라 변경 시 재계산 트리거
@@ -85,11 +81,14 @@ public struct RootView: View {
         .task { await load() }
     }
 
-    // MARK: 타이틀 (Josefin 워드마크)
+    // MARK: 타이틀 (로고마크)
 
     private var titleBar: some View {
-        Text("Cature")
-            .font(CatureFont.wordmark(size: 46))
+        Image("logo", bundle: .module)
+            .renderingMode(.template)
+            .resizable()
+            .scaledToFit()
+            .frame(width: 34, height: 34)
             .foregroundStyle(CatureColor.textPrimary.opacity(0.9))
             .padding(.leading, CatureSpacing.md)
             .padding(.top, CatureSpacing.xs)
@@ -142,7 +141,7 @@ public struct RootView: View {
                 }
             }
         }
-        .padding(.bottom, 96)   // GNB(바닥8+높이58=66) 위로 30px
+        .padding(.bottom, 86)   // GNB 위 20px (요청: 10px 더 내림)
     }
 
     // MARK: 로드
@@ -313,19 +312,20 @@ struct CreatureMarkerView: View {
                     .frame(width: 54, height: 54)
             }
 
-            Text(name)
-                .font(.system(size: 12.3, weight: .semibold))
-                .foregroundStyle(CatureColor.onFab)
-                .lineLimit(1)
-                .minimumScaleFactor(0.75)
-                .padding(.horizontal, 9)
-                .frame(height: 31, alignment: .top)
-                .padding(.top, 4)
-                .background {
-                    MarkerLabelShape()
-                        .fill(CatureColor.ink.opacity(0.9))
-                        .frame(width: 62, height: 31)
-                }
+            // 라벨 칩 + 아래 삼각형 — 둘 다 ink로 1px 겹쳐 흰 선(seam) 없이 이어붙임
+            VStack(spacing: -1) {
+                Text(name)
+                    .font(.system(size: 12.3, weight: .semibold))
+                    .foregroundStyle(CatureColor.onFab)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(CatureColor.ink, in: Capsule())
+                DownTriangle()
+                    .fill(CatureColor.ink)
+                    .frame(width: 12, height: 6)
+            }
         }
         .frame(width: 88)
         .accessibilityElement(children: .ignore)
@@ -349,15 +349,13 @@ struct CreatureMarkerView: View {
     }
 }
 
-struct MarkerLabelShape: Shape {
+/// 라벨 칩 아래 붙는 하향 삼각형 포인터.
+struct DownTriangle: Shape {
     func path(in rect: CGRect) -> Path {
-        let pointerHeight: CGFloat = 8
-        let capsule = CGRect(x: rect.minX, y: rect.minY, width: rect.width, height: rect.height - pointerHeight)
         var path = Path()
-        path.addRoundedRect(in: capsule, cornerSize: CGSize(width: 15, height: 15))
-        path.move(to: CGPoint(x: rect.midX - 8, y: capsule.maxY - 1))
+        path.move(to: CGPoint(x: rect.minX, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
         path.addLine(to: CGPoint(x: rect.midX, y: rect.maxY))
-        path.addLine(to: CGPoint(x: rect.midX + 8, y: capsule.maxY - 1))
         path.closeSubpath()
         return path
     }
