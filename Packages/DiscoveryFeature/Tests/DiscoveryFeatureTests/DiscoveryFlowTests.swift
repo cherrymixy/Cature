@@ -44,11 +44,11 @@ struct DiscoveryFlowTests {
         guard case .notFound = vm.step else { Issue.record("notFound 기대"); return }
     }
 
-    @Test("다시 찍기 → camera")
-    func retake() async {
+    @Test("다시 찍기 → 카메라 재실행(후보 다시)")
+    func retakeRecaptures() async {
         let vm = DiscoveryViewModel(deps: .mock)
         await vm.capture()
-        vm.retake()
-        guard case .camera = vm.step else { Issue.record("camera 기대"); return }
+        await vm.retake()   // 다시 찍기 = 재촬영
+        guard case .candidates = vm.step else { Issue.record("재촬영 후 candidates 기대"); return }
     }
 }

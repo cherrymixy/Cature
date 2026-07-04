@@ -38,7 +38,7 @@ struct AnalysisView: View {
             }
 
             Spacer()
-            Button("인식이 잘못됐나요? 다시 찍기") { vm.retake() }
+            Button("인식이 잘못됐나요? 다시 찍기") { Task { await vm.retake() } }
                 .font(CatureFont.callout)
                 .foregroundStyle(CatureColor.darkTextSecondary)
                 .frame(maxWidth: .infinity)

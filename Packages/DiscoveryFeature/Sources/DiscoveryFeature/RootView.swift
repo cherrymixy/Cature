@@ -48,7 +48,7 @@ public struct RootView: View {
         case .candidates(let candidates):
             AnalysisView(vm: vm, candidates: candidates)
         case .notFound:
-            NotFoundView(onRetake: { vm.retake() })
+            NotFoundView(onRetake: { Task { await vm.retake() } })
         case .coexist(let card, let species, let candidate):
             CoexistCardView(vm: vm, card: card, species: species, candidate: candidate)
         case .collected(let name, let count, let rate, let canExperience):
