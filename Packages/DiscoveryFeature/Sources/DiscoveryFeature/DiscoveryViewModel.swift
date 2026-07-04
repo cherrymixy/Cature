@@ -19,9 +19,6 @@ enum DiscoveryStep {
 final class DiscoveryViewModel {
     private(set) var step: DiscoveryStep = .camera
 
-    /// 첫 촬영을 취소했을 때 발견 플로우를 닫는 콜백(중간 카메라 페이지가 없으므로).
-    var onDismiss: (() -> Void)?
-
     private let deps: DiscoveryDependencies
     private var lastPhoto: URL?
     private var lastLocation: LocationSample?
@@ -31,26 +28,26 @@ final class DiscoveryViewModel {
         self.deps = deps
     }
 
-    /// 촬영 → 위치 → 식별(후보).
+    /// 피커 폴백(시뮬/카메라 없음): 사진 선택 → 식별.
     func capture() async {
-        do {
-            let photo = try await deps.capture.capturePhoto()
-            lastPhoto = photo
-            step = .analyzing
-            lastLocation = await deps.location.currentLocation()
-            let image = (try? Data(contentsOf: photo)) ?? Data()
-            let candidates = try await deps.llm.identify(image: image)
-            lastCandidates = candidates
-            step = candidates.isEmpty ? .notFound : .candidates(candidates)
-        } catch {
-            // 촬영 취소/실패: 첫 진입(.camera)이면 발견 닫기, 재촬영이면 이전 화면 유지.
-            if case .camera = step { onDismiss?() }
-        }
+        guard let photo = try? await deps.capture.capturePhoto() else { return }
+        await ingest(photo)
     }
 
-    /// 다시 찍기 = 카메라 재실행.
-    func retake() async {
-        await capture()
+    /// 라이브 카메라(또는 피커) 촬영 결과 → 위치 → 식별(후보).
+    func ingest(_ photo: URL) async {
+        lastPhoto = photo
+        step = .analyzing
+        lastLocation = await deps.location.currentLocation()
+        let image = (try? Data(contentsOf: photo)) ?? Data()
+        let candidates = (try? await deps.llm.identify(image: image)) ?? []
+        lastCandidates = candidates
+        step = candidates.isEmpty ? .notFound : .candidates(candidates)
+    }
+
+    /// 다시 찍기 → 카메라 화면으로.
+    func retake() {
+        step = .camera
     }
 
     /// 후보 1개 확정(자동 확정 아님) → 공존 카드.
