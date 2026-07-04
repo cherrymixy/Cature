@@ -11,6 +11,7 @@ private struct DexCard: Identifiable {
     let image: String
     let blob: String?      // nil이면 round-bg 스타일
     let round: Bool
+    let cat: String        // "animal" / "plant" / "insect"
     let w: CGFloat, h: CGFloat, x: CGFloat, y: CGFloat
 }
 
@@ -23,19 +24,28 @@ struct MyCollectionView: View {
 
     // HTML 목업 카드 순서/치수 그대로
     private let cards: [DexCard] = [
-        .init(name: "드라세나", image: "plant",     blob: "card-blob-f", round: false, w: 69, h: 82, x: 21, y: 13),
-        .init(name: "닭",       image: "chicken",   blob: "card-blob-d", round: false, w: 75, h: 83, x: 17, y: 16),
-        .init(name: "파리",     image: "fly",       blob: "card-blob-b", round: false, w: 88, h: 71, x: 11, y: 24),
-        .init(name: "느티나무", image: "tree-bg",   blob: "card-blob-a", round: true,  w: 88, h: 88, x: 12, y: 16),
-        .init(name: "개미",     image: "ant",       blob: "card-blob-a", round: false, w: 96, h: 90, x: 5,  y: 14),
-        .init(name: "카멜레온", image: "chameleon", blob: "card-blob-c", round: false, w: 77, h: 80, x: 17, y: 11),
-        .init(name: "청둥오리", image: "duck-bg",   blob: "card-blob-a", round: true,  w: 88, h: 88, x: 12, y: 16),
-        .init(name: "선인장",   image: "cactus",    blob: "card-blob-e", round: false, w: 67, h: 73, x: 25, y: 23),
-        .init(name: "무당벌레", image: "ladybug",   blob: "card-blob-a", round: false, w: 87, h: 79, x: 12, y: 19),
-        .init(name: "야생버섯", image: "mushroom",  blob: "card-blob-e", round: false, w: 84, h: 68, x: 14, y: 23),
-        .init(name: "뚱냥이",   image: "cat",       blob: "card-blob-c", round: false, w: 89, h: 76, x: 7,  y: 16),
-        .init(name: "꿀벌",     image: "bee",       blob: "card-blob-a", round: false, w: 98, h: 87, x: 6,  y: 12),
+        .init(name: "드라세나", image: "plant",     blob: "card-blob-f", round: false, cat: "plant",  w: 69, h: 82, x: 21, y: 13),
+        .init(name: "닭",       image: "chicken",   blob: "card-blob-d", round: false, cat: "animal", w: 75, h: 83, x: 17, y: 16),
+        .init(name: "파리",     image: "fly",       blob: "card-blob-b", round: false, cat: "insect", w: 88, h: 71, x: 11, y: 24),
+        .init(name: "느티나무", image: "tree-bg",   blob: "card-blob-a", round: true,  cat: "plant",  w: 88, h: 88, x: 12, y: 16),
+        .init(name: "개미",     image: "ant",       blob: "card-blob-a", round: false, cat: "insect", w: 96, h: 90, x: 5,  y: 14),
+        .init(name: "카멜레온", image: "chameleon", blob: "card-blob-c", round: false, cat: "insect", w: 77, h: 80, x: 17, y: 11),
+        .init(name: "청둥오리", image: "duck-bg",   blob: "card-blob-a", round: true,  cat: "animal", w: 88, h: 88, x: 12, y: 16),
+        .init(name: "선인장",   image: "cactus",    blob: "card-blob-e", round: false, cat: "plant",  w: 67, h: 73, x: 25, y: 23),
+        .init(name: "무당벌레", image: "ladybug",   blob: "card-blob-a", round: false, cat: "insect", w: 87, h: 79, x: 12, y: 19),
+        .init(name: "야생버섯", image: "mushroom",  blob: "card-blob-e", round: false, cat: "plant",  w: 84, h: 68, x: 14, y: 23),
+        .init(name: "뚱냥이",   image: "cat",       blob: "card-blob-c", round: false, cat: "animal", w: 89, h: 76, x: 7,  y: 16),
+        .init(name: "꿀벌",     image: "bee",       blob: "card-blob-a", round: false, cat: "insect", w: 98, h: 87, x: 6,  y: 12),
     ]
+
+    private var filteredCards: [DexCard] {
+        switch filterIndex {
+        case 1:  return cards.filter { $0.cat == "animal" }
+        case 2:  return cards.filter { $0.cat == "plant" }
+        case 3:  return cards.filter { $0.cat == "insect" }
+        default: return cards
+        }
+    }
 
     // 색 (목업 hex)
     private let bgGray = Color(red: 0.949, green: 0.949, blue: 0.949)   // #f2f2f2
@@ -136,7 +146,7 @@ struct MyCollectionView: View {
 
             ScrollView(showsIndicators: false) {
                 LazyVGrid(columns: columns, alignment: .leading, spacing: 12) {
-                    ForEach(cards) { cardView($0) }
+                    ForEach(filteredCards) { cardView($0) }
                 }
                 .padding(.leading, 16)
                 .padding(.top, 4)
@@ -163,15 +173,24 @@ struct MyCollectionView: View {
 
     private func cardView(_ c: DexCard) -> some View {
         ZStack(alignment: .topLeading) {
-            RoundedRectangle(cornerRadius: 12, style: .continuous).fill(cardGray)
-
-            if let blob = c.blob {
-                Image(blob, bundle: .module)
-                    .renderingMode(.template)
-                    .resizable()
-                    .foregroundStyle(.white)      // 사진 배경을 화이트로
-                    .frame(width: 112, height: 146)
+            // 카드 = 그레이. 블롭 모양만 흰 베이스가 비치도록 구멍을 뚫는다.
+            ZStack {
+                RoundedRectangle(cornerRadius: 12, style: .continuous).fill(.white)
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(cardGray)
+                    .overlay {
+                        if let blob = c.blob {
+                            Image(blob, bundle: .module)
+                                .renderingMode(.template)
+                                .resizable()
+                                .foregroundStyle(.black)
+                                .frame(width: 112, height: 146)
+                                .blendMode(.destinationOut)   // 블롭 부분을 파내 흰 베이스가 보이게
+                        }
+                    }
+                    .compositingGroup()
             }
+            .frame(width: 112, height: 146)
 
             if c.round {
                 Image(c.image, bundle: .module)
