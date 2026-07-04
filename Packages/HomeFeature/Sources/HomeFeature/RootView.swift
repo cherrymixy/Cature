@@ -193,13 +193,14 @@ public struct RootView: View {
     private var cardRail: some View {
         Group {
             if visibleCards.isEmpty {
-                Text("이 근처엔 아직 발견이 없어요. 장소를 눌러 이동해 보세요!")
+                Text("이 근처엔 발견이 없어요\n장소를 눌러 이동해 보세요!")
                     .font(CatureFont.callout)
                     .foregroundStyle(CatureColor.textSecondary)
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal, CatureSpacing.md)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, CatureSpacing.lg)
                     .padding(.vertical, CatureSpacing.sm)
-                    .background(.ultraThinMaterial, in: Capsule())
+                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: CatureRadius.lg, style: .continuous))
                     .frame(maxWidth: .infinity)
                     .padding(.horizontal, CatureSpacing.lg)
             } else {
