@@ -65,11 +65,9 @@ struct MiniGameMenuView: View {
                     .padding(.top, 40)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-
-            Spacer(minLength: 0)
         }
         .padding(.horizontal, 25)
-        .padding(.bottom, 88)   // 하단 탭바(GNB)와 안 겹치게
+        .padding(.bottom, 96)   // 카드 하단이 GNB(탭바)보다 30px 위
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.white)
         .alert("준비 중이에요", isPresented: $showComingSoon) {
