@@ -19,6 +19,9 @@ enum AppEnvironment {
     static let collection: any CollectionRepository = LocalCollectionRepository()
     static let profile: any ProfileRepository = LocalProfileRepository()
 
+    // MARK: 공유 위치 (발견·홈이 같은 CLLocationManager 사용 → 권한 1회)
+    static let location: any LocationService = CoreLocationService()
+
     // MARK: OpenAI 키
     /// 앱 번들의 Secrets.plist(비커밋, CatureApp/Secrets.plist) → OpenAIAPIKey. 없으면 빈 문자열.
     static var openAIKey: String {
@@ -41,7 +44,7 @@ enum AppEnvironment {
         DiscoveryDependencies(
             capture: ImagePickerCaptureService(),
             llm: llm,
-            location: CoreLocationService(),
+            location: location,
             species: species,
             sightings: sightings,
             collection: collection
