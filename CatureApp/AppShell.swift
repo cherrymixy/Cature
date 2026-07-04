@@ -20,7 +20,7 @@ enum AppTab: Hashable {
 }
 
 struct RootView: View {
-    @State private var selectedTab: AppTab = .feature
+    @State private var selectedTab: AppTab = .home
     @State private var showCamera = false
     @State private var showExperience = false
     @State private var pendingExperience = false
