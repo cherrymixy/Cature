@@ -86,19 +86,25 @@ struct RootView: View {
         }
     }
 
-    // MARK: 하단 바 — Figma 105-543 최종 디자인. 프로스트 알약(선택=흰 알약 아이콘+라벨, 비선택=아이콘만) + 다크 조리개 FAB.
+    // MARK: 하단 바 — Figma 133-483 최종 디자인. 회색 프로스트 알약(선택=흰 알약 아이콘+라벨, 비선택=아이콘만) + 로고 FAB.
     private var bottomBar: some View {
         HStack(alignment: .bottom, spacing: CatureSpacing.sm) {
             if !fabExpanded {
-                HStack(spacing: 4) {
+                HStack(spacing: 12) {
                     tabButton(.home,    title: "홈",   icon: "house.fill")
-                    tabButton(.feature, title: "기능", icon: "gamecontroller")
+                    tabButton(.feature, title: "기능", icon: "checklist")
                     tabButton(.my,      title: "마이", icon: "person.fill")
                 }
-                .padding(6)
-                .background(.ultraThinMaterial, in: Capsule())
-                .overlay(Capsule().stroke(Color.white.opacity(0.5), lineWidth: 1))
-                .shadow(color: .black.opacity(0.06), radius: 10, y: 2)
+                .padding(.trailing, 18)
+                .frame(height: 58)
+                .background {
+                    Capsule()
+                        .fill(.ultraThinMaterial)
+                        .overlay(Capsule().fill(tabBarFrost))
+                }
+                .clipShape(Capsule())
+                .overlay(Capsule().stroke(Color.white.opacity(0.2), lineWidth: 1))
+                .shadow(color: .black.opacity(0.08), radius: 10, y: 2)
                 .transition(.move(edge: .leading).combined(with: .opacity))
             }
 
@@ -123,23 +129,31 @@ struct RootView: View {
         .padding(.bottom, CatureSpacing.xs)
     }
 
-    // 선택 탭 = 흰 알약(아이콘 + 라벨), 비선택 = 아이콘만 (Figma 105-543).
+    // Figma 133-483 회색 프로스트 그라디언트
+    private var tabBarFrost: LinearGradient {
+        LinearGradient(
+            colors: [Color(red: 0.827, green: 0.827, blue: 0.827).opacity(0.62),
+                     Color(red: 0.914, green: 0.914, blue: 0.914).opacity(0.62)],
+            startPoint: .topLeading, endPoint: .bottomTrailing)
+    }
+
+    // 선택 탭 = 흰 알약(아이콘 + 라벨, 전체 높이), 비선택 = 아이콘만 (Figma 133-483).
     private func tabButton(_ tab: AppTab, title: String, icon: String) -> some View {
         let isSelected = selectedTab == tab
         return Button { selectedTab = tab } label: {
-            HStack(spacing: 6) {
-                Image(systemName: icon).font(.system(size: 17, weight: .semibold))
+            HStack(spacing: 8) {
+                Image(systemName: icon).font(.system(size: 18, weight: isSelected ? .semibold : .regular))
                 if isSelected {
                     Text(title).font(.system(size: 15, weight: .medium))
                 }
             }
-            .foregroundStyle(isSelected ? .black : .black.opacity(0.4))
-            .padding(.horizontal, isSelected ? 18 : 13)
-            .frame(height: 44)
+            .foregroundStyle(isSelected ? .black : .black.opacity(0.35))
+            .padding(.horizontal, isSelected ? 26 : 10)
+            .frame(height: 58)
             .background {
                 if isSelected {
                     Capsule().fill(Color.white)
-                        .shadow(color: .black.opacity(0.08), radius: 5, y: 1)
+                        .shadow(color: .black.opacity(0.06), radius: 4, x: -1, y: 1)
                 }
             }
             .contentShape(Capsule())
@@ -173,13 +187,24 @@ struct RootView: View {
 
     private var fab: some View {
         Button { fabExpanded.toggle() } label: {
-            Image(systemName: fabExpanded ? "xmark" : "camera.aperture")
-                .font(.system(size: 22, weight: .semibold))
-                .foregroundStyle(CatureColor.onFab)
-                .frame(width: 56, height: 56)
-                .background(CatureColor.fab, in: Circle())
-                .rotationEffect(.degrees(fabExpanded ? 90 : 0))
-                .shadow(color: .black.opacity(0.25), radius: 10, x: 0, y: 4)
+            ZStack {
+                if fabExpanded {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 22, weight: .semibold))
+                        .foregroundStyle(CatureColor.onFab)
+                } else {
+                    Image("logo")            // 추가된 로고 SVG (조리개)
+                        .resizable()
+                        .renderingMode(.template)
+                        .scaledToFit()
+                        .foregroundStyle(CatureColor.onFab)
+                        .frame(width: 26, height: 26)
+                }
+            }
+            .frame(width: 58, height: 58)
+            .background(CatureColor.fab, in: Circle())
+            .rotationEffect(.degrees(fabExpanded ? 90 : 0))
+            .shadow(color: .black.opacity(0.25), radius: 10, x: 0, y: 4)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(fabExpanded ? "닫기" : "카메라")
