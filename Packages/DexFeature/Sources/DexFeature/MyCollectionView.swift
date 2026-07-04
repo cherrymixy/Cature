@@ -54,9 +54,11 @@ struct MyCollectionView: View {
 
     private var topBar: some View {
         HStack(alignment: .center) {
-            Text("My")
-                .font(.system(size: 36, weight: .black)).tracking(-2.5)
-                .foregroundStyle(.black)
+            Image("my-logo", bundle: .module)
+                .resizable()
+                .scaledToFit()
+                .frame(height: 32)
+                .accessibilityLabel("My")
             Spacer()
             VStack(spacing: 5) {
                 ForEach(0..<3, id: \.self) { _ in
