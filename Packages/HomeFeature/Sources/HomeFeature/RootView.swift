@@ -1,6 +1,16 @@
+//  RootView.swift
+//  Cature — 홈(지도) (예준 S2 → 승아: MapKit 실지도로 교체).
+//
+//  실제 MapKit Map: 현재 위치(UserAnnotation) + 발견 기록(SightingRepository) 좌표에 마커.
+//  하단 가로 카드 = 발견 생물 · 카테고리 · 현재 위치 기준 실거리.
+//  · 좌표 없는 기록은 지도에 안 찍힘(카드에도 제외) — 폴백은 빈 안내.
+//  · 하단바/카메라 FAB는 앱 셸(AppShell)이 그리므로 여기선 지도+콘텐츠만.
+//  데이터는 CorePackage 프로토콜로만, 스타일은 DesignTokens로만.
+
 import CoreLocation
 import CorePackage
 import DesignTokens
+import MapKit
 import SwiftUI
 
 public struct RootView: View {
@@ -9,8 +19,15 @@ public struct RootView: View {
     private let speciesRepository: any SpeciesRepository
     private let locationService: any LocationService
 
+    @State private var cameraPosition: MapCameraPosition = .region(
+        MKCoordinateRegion(
+            center: RootView.defaultCenter,
+            span: MKCoordinateSpan(latitudeDelta: 0.04, longitudeDelta: 0.04)
+        )
+    )
+    @State private var markers: [CreatureMapMarker] = []
+    @State private var nearbyCards: [CreatureCardItem] = []
     @State private var discoveredCount = 0
-    @State private var distanceText = "120m"
 
     public init(
         collectionRepository: any CollectionRepository = MockCollectionRepository(),
@@ -25,364 +42,302 @@ public struct RootView: View {
     }
 
     public var body: some View {
-        GeometryReader { geometry in
-            let size = geometry.size
-            let scale = max(size.width / Figma.baseWidth, size.height / Figma.baseHeight)
-            let canvas = CGSize(width: size.width / scale, height: size.height / scale)
+        ZStack {
+            Map(position: $cameraPosition) {
+                UserAnnotation()
 
-            ZStack(alignment: .topLeading) {
-                Image("home-map", bundle: .module)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: Figma.mapWidth, height: Figma.mapHeight)
-                    .rotationEffect(.degrees(90))
-                    .opacity(0.5)
-                    .position(x: 221, y: 299)
-
-                LinearGradient(
-                    colors: [
-                        CatureColor.accentSoft.opacity(0.7),
-                        CatureColor.surface.opacity(0.0),
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .frame(width: Figma.baseWidth, height: 266)
-                .position(x: Figma.baseWidth / 2, y: 132)
-
-                Text("Cature")
-                    .font(.system(size: 48, weight: .semibold))
-                    .foregroundStyle(CatureColor.textPrimary.opacity(0.9))
-                    .kerning(-3.36)
-                    .position(x: 97, y: 104)
-
-                categoryRail(discoveredCount: discoveredCount)
-                    .position(x: 224, y: 152)
-
-                FigmaMarker(assetName: "marker-chameleon", label: "카멜레온")
-                    .position(x: 91, y: 304)
-
-                FigmaMarker(assetName: "marker-tree", label: "은행나무")
-                    .position(x: 286, y: 348)
-
-                FigmaMarker(assetName: "marker-duck", label: "청둥오리")
-                    .position(x: 230, y: 502)
-
-                cardRail(distanceText: distanceText)
-                    .position(x: 298, y: 672)
-
-                bottomNavigation
-                    .position(x: 212, y: 788)
+                ForEach(markers) { marker in
+                    Annotation(marker.name, coordinate: marker.coordinate) {
+                        CreatureAnnotationView(name: marker.name)
+                    }
+                    .annotationTitles(.hidden)
+                }
             }
-            .frame(width: canvas.width, height: canvas.height)
-            .scaleEffect(scale, anchor: .topLeading)
-            .frame(width: size.width, height: size.height, alignment: .topLeading)
-            .background(CatureColor.surface)
-            .clipped()
+            .mapStyle(.standard(elevation: .flat, pointsOfInterest: .excludingAll))
+            .grayscale(1.0)   // 모노톤(흑백) 지도 — 지도 레이어만 탈색, UI 오버레이는 색 유지
+            .mapControls {
+                MapUserLocationButton()
+                MapCompass()
+            }
             .ignoresSafeArea()
-        }
-        .task {
-            await loadMockBackedState()
-        }
-    }
 
-    private func categoryRail(discoveredCount: Int) -> some View {
-        HStack(spacing: 5) {
-            CircleButton(systemName: "plus")
-            CategoryChip(title: "Nearby", systemName: "mappin.and.ellipse", count: nil, isSelected: true)
-            CategoryChip(title: "Home", systemName: nil, count: max(discoveredCount, 3), isSelected: false)
-            CategoryChip(title: "Office", systemName: nil, count: 6, isSelected: false)
-            CategoryChip(title: "Addxd", systemName: nil, count: 1, isSelected: false)
-        }
-        .frame(height: 38)
-    }
-
-    private func cardRail(distanceText: String) -> some View {
-        HStack(spacing: 16) {
-            CreatureCard(isSelected: true, distanceText: distanceText)
-            CreatureCard(isSelected: false, distanceText: distanceText)
-        }
-    }
-
-    private var bottomNavigation: some View {
-        HStack(spacing: 14) {
-            HStack(spacing: 15) {
-                BottomTab(systemName: "house.fill", title: "Home", isSelected: true)
-                BottomTab(systemName: "checklist", title: nil, isSelected: false)
-                BottomTab(systemName: "person.fill", title: nil, isSelected: false)
+            // 지도 위 콘텐츠(안전영역 안에서 배치)
+            VStack(spacing: 0) {
+                topBar
+                Spacer(minLength: 0)
+                cardRail
             }
-            .frame(width: 262, height: 58)
-            .background(.ultraThinMaterial)
-            .clipShape(Capsule())
-            .overlay(alignment: .leading) {
-                Capsule()
-                    .fill(CatureColor.surface)
-                    .frame(width: 122, height: 58)
-                    .shadow(color: CatureColor.textSecondary.opacity(0.08), radius: 9, x: -1, y: 1)
-            }
-            .overlay(alignment: .leading) {
-                BottomTab(systemName: "house.fill", title: "Home", isSelected: true)
-                    .frame(width: 122, height: 58)
-            }
-            .shadow(color: CatureColor.textSecondary.opacity(0.08), radius: 13, y: 2)
-
-            CameraButton()
         }
+        .task { await load() }
     }
+
+    // MARK: 상단 (워드마크 + 발견 수)
+
+    private var topBar: some View {
+        HStack(alignment: .center) {
+            Text("Cature")
+                .font(.system(size: 32, weight: .semibold))
+                .kerning(-1.6)
+                .foregroundStyle(CatureColor.textPrimary)
+
+            Spacer()
+
+            HStack(spacing: 6) {
+                Image(systemName: "mappin.and.ellipse")
+                    .font(.system(size: 13, weight: .semibold))
+                Text("\(discoveredCount) 발견")
+                    .font(CatureFont.caption)
+            }
+            .foregroundStyle(CatureColor.textPrimary)
+            .padding(.horizontal, CatureSpacing.sm)
+            .padding(.vertical, CatureSpacing.xs)
+            .background(.ultraThinMaterial, in: Capsule())
+            .overlay(Capsule().stroke(CatureColor.textPrimary.opacity(0.08), lineWidth: 1))
+        }
+        .padding(.horizontal, CatureSpacing.lg)
+        .padding(.top, CatureSpacing.xs)
+    }
+
+    // MARK: 하단 근처 카드 레일
+
+    @ViewBuilder
+    private var cardRail: some View {
+        Group {
+            if nearbyCards.isEmpty {
+                Text("아직 지도에 표시할 발견이 없어요. 카메라로 첫 발견을 시작해요!")
+                    .font(CatureFont.callout)
+                    .foregroundStyle(CatureColor.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, CatureSpacing.md)
+                    .padding(.vertical, CatureSpacing.sm)
+                    .background(.ultraThinMaterial, in: Capsule())
+                    .padding(.horizontal, CatureSpacing.lg)
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: CatureSpacing.md) {
+                        ForEach(nearbyCards) { item in
+                            CreatureMapCard(item: item) { focus(on: item.id) }
+                        }
+                    }
+                    .padding(.horizontal, CatureSpacing.lg)
+                }
+            }
+        }
+        .padding(.bottom, 116)   // 셸 플로팅 하단바 위로 띄움
+    }
+
+    // MARK: 로드
 
     @MainActor
-    private func loadMockBackedState() async {
-        do {
-            async let entriesResult = collectionRepository.allEntries()
-            async let sightingsResult = sightingRepository.allSightings()
-            async let locationResult = locationService.currentLocation()
-            _ = try await speciesRepository.allSpecies()
+    private func load() async {
+        async let sightingsResult = sightingRepository.allSightings()
+        async let speciesResult = speciesRepository.allSpecies()
+        async let entriesResult = collectionRepository.allEntries()
+        let currentLocation = await locationService.currentLocation()
 
-            let entries = try await entriesResult
-            let sightings = try await sightingsResult
-            let currentLocation = await locationResult
+        let sightings = (try? await sightingsResult) ?? []
+        let species = (try? await speciesResult) ?? []
+        let entries = (try? await entriesResult) ?? []
 
-            discoveredCount = max(entries.filter(\.discovered).count, 3)
+        let speciesById = Dictionary(species.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        let discoveredIds = Set(entries.filter(\.discovered).map(\.speciesId))
+        discoveredCount = discoveredIds.count
 
-            guard
-                let currentLocation,
-                let first = sightings.first(where: { $0.latitude != nil && $0.longitude != nil }),
-                let latitude = first.latitude,
-                let longitude = first.longitude
-            else {
-                distanceText = "120m"
-                return
+        let userLocation = currentLocation.map {
+            CLLocation(latitude: $0.latitude, longitude: $0.longitude)
+        }
+
+        var builtMarkers: [CreatureMapMarker] = []
+        var builtCards: [CreatureCardItem] = []
+
+        // 최신 발견부터
+        for sighting in sightings.sorted(by: { $0.createdAt > $1.createdAt }) {
+            guard let latitude = sighting.latitude, let longitude = sighting.longitude else { continue }
+            let coordinate = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+            let species = speciesById[sighting.speciesId]
+            let name = species?.nameKo ?? sighting.speciesId
+
+            builtMarkers.append(
+                CreatureMapMarker(id: sighting.id, name: name, coordinate: coordinate)
+            )
+
+            let distanceText: String
+            if let userLocation {
+                let meters = Int(userLocation.distance(from: CLLocation(latitude: latitude, longitude: longitude)).rounded())
+                distanceText = meters > 0 ? Self.formatDistance(meters) : "바로 근처"
+            } else {
+                distanceText = sighting.locationName ?? "위치 미확인"
             }
 
-            let current = CLLocation(latitude: currentLocation.latitude, longitude: currentLocation.longitude)
-            let target = CLLocation(latitude: latitude, longitude: longitude)
-            let meters = Int(current.distance(from: target).rounded())
-            distanceText = meters > 0 ? "\(meters)m" : "120m"
-        } catch {
-            discoveredCount = 3
-            distanceText = "120m"
+            builtCards.append(
+                CreatureCardItem(
+                    id: sighting.id,
+                    name: name,
+                    category: species?.category ?? "생물",
+                    distanceText: distanceText,
+                    discovered: discoveredIds.contains(sighting.speciesId)
+                )
+            )
+        }
+
+        markers = builtMarkers
+        nearbyCards = builtCards
+
+        let center = currentLocation.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }
+            ?? builtMarkers.first?.coordinate
+            ?? Self.defaultCenter
+        withAnimation {
+            cameraPosition = .region(
+                MKCoordinateRegion(
+                    center: center,
+                    span: MKCoordinateSpan(latitudeDelta: 0.012, longitudeDelta: 0.012)
+                )
+            )
         }
     }
-}
 
-private enum Figma {
-    static let baseWidth: CGFloat = 393
-    static let baseHeight: CGFloat = 852
-    static let mapWidth: CGFloat = 959.493
-    static let mapHeight: CGFloat = 753.202
-}
-
-private struct CategoryChip: View {
-    let title: String
-    let systemName: String?
-    let count: Int?
-    let isSelected: Bool
-
-    var body: some View {
-        HStack(spacing: 5) {
-            if let systemName {
-                Image(systemName: systemName)
-                    .font(.system(size: 13, weight: .medium))
-            }
-            if let count {
-                Text("\(count)")
-                    .font(.system(size: 13.5, weight: .regular))
-                    .foregroundStyle(CatureColor.textPrimary.opacity(0.7))
-                    .frame(width: 19, height: 19)
-                    .background(CatureColor.surfaceSecondary)
-                    .clipShape(RoundedRectangle(cornerRadius: 9.5, style: .continuous))
-            }
-            Text(title)
-                .font(.system(size: 16, weight: .medium))
-                .foregroundStyle(isSelected ? CatureColor.textPrimary : CatureColor.textPrimary.opacity(0.7))
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-        }
-        .padding(.horizontal, isSelected ? 18 : 10)
-        .frame(width: isSelected ? 104 : 86, height: 38)
-        .background(isSelected ? CatureColor.accentSoft.opacity(2.5) : CatureColor.surface)
-        .clipShape(Capsule())
-        .overlay {
-            Capsule()
-                .stroke(CatureColor.textPrimary.opacity(isSelected ? 0 : 0.1), lineWidth: 1)
+    private func focus(on markerID: String) {
+        guard let marker = markers.first(where: { $0.id == markerID }) else { return }
+        withAnimation {
+            cameraPosition = .region(
+                MKCoordinateRegion(
+                    center: marker.coordinate,
+                    span: MKCoordinateSpan(latitudeDelta: 0.006, longitudeDelta: 0.006)
+                )
+            )
         }
     }
-}
 
-private struct CircleButton: View {
-    let systemName: String
+    static let defaultCenter = CLLocationCoordinate2D(latitude: 37.5665, longitude: 126.9780) // 서울시청
 
-    var body: some View {
-        Image(systemName: systemName)
-            .font(.system(size: 20, weight: .regular))
-            .foregroundStyle(CatureColor.textPrimary)
-            .frame(width: 38, height: 38)
-            .background(CatureColor.surface)
-            .clipShape(Circle())
-    }
-}
-
-private struct FigmaMarker: View {
-    let assetName: String
-    let label: String
-
-    var body: some View {
-        VStack(spacing: -6) {
-            Image(assetName, bundle: .module)
-                .resizable()
-                .scaledToFit()
-                .frame(width: 88, height: 88)
-
-            Text(label)
-                .font(.system(size: 12.3, weight: .medium))
-                .foregroundStyle(CatureColor.onFab)
-                .lineLimit(1)
-                .minimumScaleFactor(0.75)
-                .padding(.horizontal, 9)
-                .frame(height: 31, alignment: .top)
-                .padding(.top, 4)
-                .background {
-                    MarkerLabelShape()
-                        .fill(CatureColor.fab.opacity(0.78))
-                        .frame(width: 60, height: 31)
-                }
+    static func formatDistance(_ meters: Int) -> String {
+        if meters >= 1000 {
+            return String(format: "%.1fkm", Double(meters) / 1000)
         }
-        .frame(width: 88)
+        return "\(meters)m"
     }
 }
 
-private struct MarkerLabelShape: Shape {
-    func path(in rect: CGRect) -> Path {
-        let pointerHeight: CGFloat = 8
-        let capsule = CGRect(x: rect.minX, y: rect.minY, width: rect.width, height: rect.height - pointerHeight)
-        var path = Path()
-        path.addRoundedRect(in: capsule, cornerSize: CGSize(width: 15, height: 15))
-        path.move(to: CGPoint(x: rect.midX - 8, y: capsule.maxY - 1))
-        path.addLine(to: CGPoint(x: rect.midX, y: rect.maxY))
-        path.addLine(to: CGPoint(x: rect.midX + 8, y: capsule.maxY - 1))
-        path.closeSubpath()
-        return path
-    }
+// MARK: - 모델
+
+struct CreatureMapMarker: Identifiable {
+    let id: String
+    let name: String
+    let coordinate: CLLocationCoordinate2D
 }
 
-private struct CreatureCard: View {
-    let isSelected: Bool
+struct CreatureCardItem: Identifiable {
+    let id: String
+    let name: String
+    let category: String
     let distanceText: String
+    let discovered: Bool
+}
+
+// MARK: - 지도 마커 뷰
+
+struct CreatureAnnotationView: View {
+    let name: String
 
     var body: some View {
-        HStack(alignment: .bottom, spacing: 0) {
-            VStack(alignment: .leading, spacing: 15) {
-                VStack(alignment: .leading, spacing: 0) {
-                    Text("Chameleon")
-                        .font(.system(size: 28, weight: .semibold))
-                        .kerning(-1.96)
-                        .foregroundStyle(CatureColor.textPrimary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.72)
+        VStack(spacing: 3) {
+            ZStack {
+                Circle()
+                    .fill(CatureColor.fab)
+                    .frame(width: 34, height: 34)
+                    .shadow(color: .black.opacity(0.22), radius: 3, y: 1)
+                Image(systemName: "pawprint.fill")
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(CatureColor.onFab)
+            }
 
-                    Text("카멜레온")
-                        .font(.system(size: 14, weight: .medium))
-                        .kerning(-0.7)
-                        .foregroundStyle(CatureColor.textPrimary.opacity(0.5))
+            Text(name)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(CatureColor.textPrimary)
+                .lineLimit(1)
+                .padding(.horizontal, 7)
+                .padding(.vertical, 2)
+                .background(CatureColor.surface.opacity(0.92), in: Capsule())
+                .overlay(Capsule().stroke(CatureColor.textPrimary.opacity(0.08), lineWidth: 1))
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(name) 발견 위치")
+    }
+}
+
+// MARK: - 하단 근처 카드
+
+struct CreatureMapCard: View {
+    let item: CreatureCardItem
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            HStack(spacing: CatureSpacing.sm) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: CatureRadius.md, style: .continuous)
+                        .fill(CatureColor.accentSoft)
+                        .frame(width: 48, height: 48)
+                    Image(systemName: "leaf.fill")
+                        .font(.system(size: 20, weight: .medium))
+                        .foregroundStyle(CatureColor.accent)
                 }
 
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("보유중")
-                        .font(.system(size: 11.3, weight: .medium))
-                        .foregroundStyle(CatureColor.onFab)
-                        .frame(width: 48, height: 18)
-                        .background(CatureColor.fab)
-                        .clipShape(Capsule())
-
-                    Text("\(distanceText) · 발견 확률 높음")
-                        .font(.system(size: 12.7, weight: .medium))
-                        .kerning(-0.38)
-                        .foregroundStyle(CatureColor.textPrimary.opacity(0.5))
+                    Text(item.name)
+                        .font(CatureFont.headline)
+                        .foregroundStyle(CatureColor.textPrimary)
                         .lineLimit(1)
-                        .minimumScaleFactor(0.75)
+                        .minimumScaleFactor(0.8)
+
+                    Text("\(item.category) · \(item.distanceText)")
+                        .font(CatureFont.caption)
+                        .foregroundStyle(CatureColor.textSecondary)
+                        .lineLimit(1)
+
+                    if item.discovered {
+                        Text("보유중")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(CatureColor.onFab)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(CatureColor.fab, in: Capsule())
+                    }
                 }
+
+                Spacer(minLength: 0)
             }
-            .frame(width: 131, alignment: .leading)
-
-            Spacer(minLength: 0)
-
-            Image("card-chameleon", bundle: .module)
-                .resizable()
-                .scaledToFill()
-                .frame(width: 101, height: 104)
-                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                .scaleEffect(x: -1, y: -1)
-                .rotationEffect(.degrees(180))
+            .padding(CatureSpacing.sm)
+            .frame(width: 216, alignment: .leading)
+            .background(CatureColor.surface, in: RoundedRectangle(cornerRadius: CatureRadius.card, style: .continuous))
+            .shadow(color: CatureColor.textSecondary.opacity(0.12), radius: 8, y: 3)
         }
-        .padding(.top, 16)
-        .padding(.leading, 16)
-        .padding(.trailing, 18)
-        .padding(.bottom, 13)
-        .frame(width: 282, height: 133)
-        .background(isSelected ? CatureColor.accentSoft.opacity(2.5) : CatureColor.surface)
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .shadow(color: CatureColor.textSecondary.opacity(isSelected ? 0.05 : 0.04), radius: isSelected ? 6 : 2)
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(item.name), \(item.distanceText)")
     }
 }
 
-private struct BottomTab: View {
-    let systemName: String
-    let title: String?
-    let isSelected: Bool
-
-    var body: some View {
-        HStack(spacing: 9) {
-            Image(systemName: systemName)
-                .font(.system(size: 23, weight: .bold))
-            if let title {
-                Text(title)
-                    .font(.system(size: 15.2, weight: .medium))
-                    .kerning(-0.46)
-            }
-        }
-        .foregroundStyle(isSelected ? CatureColor.textPrimary : CatureColor.textSecondary)
-        .frame(width: isSelected ? 122 : 52, height: 58)
-    }
-}
-
-private struct CameraButton: View {
-    var body: some View {
-        ZStack {
-            Circle()
-                .fill(CatureColor.fab)
-                .frame(width: 58, height: 58)
-
-            ForEach(0..<4, id: \.self) { index in
-                Capsule()
-                    .fill(CatureColor.onFab)
-                    .frame(width: 12, height: 27)
-                    .rotationEffect(.degrees(Double(index) * 90 + 45))
-                    .offset(y: -11)
-                    .rotationEffect(.degrees(Double(index) * 90))
-            }
-        }
-    }
-}
+// MARK: - 프리뷰
 
 private enum HomePreviewData {
+    static let now = Date(timeIntervalSince1970: 1_720_000_000)
+
     static var collectionRepository: MockCollectionRepository {
-        let now = Date(timeIntervalSinceReferenceDate: 783_648_000)
-        return MockCollectionRepository(entries: [
+        MockCollectionRepository(entries: [
             CollectionEntry(speciesId: "chameleon", captureCount: 2, discovered: true, firstSeenAt: now, lastSeenAt: now, isFavorite: true),
             CollectionEntry(speciesId: "tree_frog", captureCount: 1, discovered: true, firstSeenAt: now, lastSeenAt: now, isFavorite: false),
-            CollectionEntry(speciesId: "ladybug", captureCount: 1, discovered: true, firstSeenAt: now, lastSeenAt: now, isFavorite: false),
         ])
     }
 
     static var sightingRepository: MockSightingRepository {
-        let now = Date(timeIntervalSinceReferenceDate: 783_648_000)
-        return MockSightingRepository(sightings: [
-            Sighting(id: "home-chameleon", speciesId: "chameleon", photoPath: "mock/chameleon.jpg", latitude: 37.5655, longitude: 126.9774, locationName: "Nearby", createdAt: now),
+        MockSightingRepository(sightings: [
+            Sighting(id: "s-chameleon", speciesId: "chameleon", photoPath: "", latitude: 37.5662, longitude: 126.9784, locationName: "서울시청 근처", createdAt: now),
+            Sighting(id: "s-frog", speciesId: "tree_frog", photoPath: "", latitude: 37.5679, longitude: 126.9769, locationName: "청계천", createdAt: now.addingTimeInterval(-3600)),
         ])
     }
 }
 
-#Preview {
+#Preview("홈 지도") {
     RootView(
         collectionRepository: HomePreviewData.collectionRepository,
         sightingRepository: HomePreviewData.sightingRepository,
@@ -393,31 +348,11 @@ private enum HomePreviewData {
     )
 }
 
-#Preview("Marker") {
-    FigmaMarker(assetName: "marker-chameleon", label: "카멜레온")
-        .padding()
-}
-
-#Preview("Card") {
-    CreatureCard(isSelected: true, distanceText: "120m")
-        .padding()
-}
-
-#Preview("Categories") {
-    HStack(spacing: 5) {
-        CircleButton(systemName: "plus")
-        CategoryChip(title: "Nearby", systemName: "mappin.and.ellipse", count: nil, isSelected: true)
-        CategoryChip(title: "Home", systemName: nil, count: 3, isSelected: false)
-    }
-    .padding()
-}
-
-#Preview("Bottom Navigation") {
-    HStack {
-        BottomTab(systemName: "house.fill", title: "Home", isSelected: true)
-        BottomTab(systemName: "checklist", title: nil, isSelected: false)
-        BottomTab(systemName: "person.fill", title: nil, isSelected: false)
-        CameraButton()
-    }
-    .padding()
+#Preview("빈 상태") {
+    RootView(
+        collectionRepository: MockCollectionRepository(),
+        sightingRepository: MockSightingRepository(),
+        speciesRepository: MockSpeciesRepository(),
+        locationService: MockLocationService(sample: nil)
+    )
 }
