@@ -18,6 +18,8 @@ public struct ARDependencies: Sendable {
         let epoch = Date(timeIntervalSince1970: 0)
         return ARDependencies(
             collection: MockCollectionRepository(entries: [
+                CollectionEntry(speciesId: "cat", captureCount: 1, discovered: true,
+                                firstSeenAt: epoch, lastSeenAt: epoch, isFavorite: false),
                 CollectionEntry(speciesId: "chameleon", captureCount: 1, discovered: true,
                                 firstSeenAt: epoch, lastSeenAt: epoch, isFavorite: false)
             ]),
