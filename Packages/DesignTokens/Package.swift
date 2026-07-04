@@ -9,6 +9,11 @@ let package = Package(
     ],
     targets: [
         // 순수 디자인 레이어 — 도메인(Core)에 의존하지 않는다(의존 0).
-        .target(name: "DesignTokens"),
+        .target(
+            name: "DesignTokens",
+            resources: [
+                .process("Resources"),   // 번들 폰트(Josefin Sans) — 코드로 런타임 등록
+            ]
+        ),
     ]
 )

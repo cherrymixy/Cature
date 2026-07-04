@@ -12,4 +12,11 @@ public enum CatureFont {
     public static let body       = Font.system(size: 16, weight: .regular)
     public static let callout    = Font.system(size: 15, weight: .regular)
     public static let caption    = Font.system(size: 13, weight: .regular)
+
+    /// 브랜드 워드마크·영문 타이틀 = Josefin Sans SemiBold (Figma).
+    /// 폰트 미등록/미탑재 시 `.custom`이 시스템으로 자동 폴백.
+    public static func wordmark(size: CGFloat) -> Font {
+        CatureFonts.registerIfNeeded()
+        return .custom("JosefinSans-SemiBold", size: size)
+    }
 }
