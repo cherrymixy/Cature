@@ -39,23 +39,4 @@ struct MyTabPlaceholder: View {
     var body: some View { TabPlaceholder(title: "마이 · 도감", swapNote: "→ DexFeature.RootView (찬희)") }
 }
 
-/// 카메라(발견) 자리표시자 — fullScreenCover로 뜬다. 다크 컨텍스트.
-struct CameraPlaceholder: View {
-    let onClose: () -> Void
-
-    var body: some View {
-        ZStack(alignment: .topLeading) {
-            TabPlaceholder(title: "발견 · 카메라",
-                           swapNote: "→ DiscoveryFeature.RootView (승아)",
-                           appearance: .dark)
-            Button(action: onClose) {
-                Image(systemName: "xmark")
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(CatureColor.darkTextPrimary)
-                    .padding(CatureSpacing.sm)
-            }
-            .padding(CatureSpacing.md)
-            .accessibilityLabel("닫기")
-        }
-    }
-}
+// 카메라 FAB는 이제 DiscoveryFeature.RootView를 띄운다(AppShell). 카메라 placeholder 제거됨.

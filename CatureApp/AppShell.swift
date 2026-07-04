@@ -9,6 +9,7 @@
 
 import SwiftUI
 import DesignTokens
+import DiscoveryFeature
 
 enum AppTab: Hashable {
     case home, feature, my
@@ -26,8 +27,11 @@ struct RootView: View {
             bottomBar
         }
         .fullScreenCover(isPresented: $showCamera) {
-            // 라우팅 교체 지점 → DiscoveryFeature.RootView (승아)
-            CameraPlaceholder { showCamera = false }
+            DiscoveryFeature.RootView(
+                dependencies: .mock,       // S9에서 실구현(Data·Services) 주입으로 교체
+                onEnterExperience: {},     // S8 ARFeature 진입점
+                onClose: { showCamera = false }
+            )
         }
     }
 
