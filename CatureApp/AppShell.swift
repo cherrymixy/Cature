@@ -86,16 +86,17 @@ struct RootView: View {
         }
     }
 
-    // MARK: 하단 바 — Figma 133-483 최종 디자인. 회색 프로스트 알약(선택=흰 알약 아이콘+라벨, 비선택=아이콘만) + 로고 FAB.
+    // MARK: 하단 바 — Figma 133-483. 넓은 회색 프로스트 알약(선택=흰 알약 아이콘+라벨, 비선택=아이콘만) + 로고 FAB.
     private var bottomBar: some View {
-        HStack(alignment: .bottom, spacing: CatureSpacing.sm) {
+        HStack(alignment: .bottom, spacing: 12) {
             if !fabExpanded {
-                HStack(spacing: 12) {
-                    tabButton(.home,    title: "홈",   icon: "house.fill")
-                    tabButton(.feature, title: "기능", icon: "checklist")
-                    tabButton(.my,      title: "마이", icon: "person.fill")
+                HStack(spacing: 14) {
+                    tabButton(.home,    title: "Home", icon: "house.fill")
+                    tabButton(.feature, title: "Task", icon: "list.bullet.rectangle.fill")
+                    tabButton(.my,      title: "My",   icon: "person.fill")
+                    Spacer(minLength: 0)
                 }
-                .padding(.trailing, 18)
+                .frame(maxWidth: .infinity)
                 .frame(height: 58)
                 .background {
                     Capsule()
@@ -105,10 +106,10 @@ struct RootView: View {
                 .clipShape(Capsule())
                 .overlay(Capsule().stroke(Color.white.opacity(0.2), lineWidth: 1))
                 .shadow(color: .black.opacity(0.08), radius: 10, y: 2)
-                .transition(.move(edge: .leading).combined(with: .opacity))
+                .transition(.opacity)
+            } else {
+                Spacer(minLength: 0)
             }
-
-            Spacer(minLength: 0)
 
             // 스피드다이얼: 액션(확장 시) + FAB
             VStack(alignment: .trailing, spacing: CatureSpacing.md) {
@@ -141,14 +142,14 @@ struct RootView: View {
     private func tabButton(_ tab: AppTab, title: String, icon: String) -> some View {
         let isSelected = selectedTab == tab
         return Button { selectedTab = tab } label: {
-            HStack(spacing: 8) {
-                Image(systemName: icon).font(.system(size: 18, weight: isSelected ? .semibold : .regular))
+            HStack(spacing: 9) {
+                Image(systemName: icon).font(.system(size: 21, weight: isSelected ? .semibold : .regular))
                 if isSelected {
-                    Text(title).font(.system(size: 15, weight: .medium))
+                    Text(title).font(.system(size: 16, weight: .medium))
                 }
             }
-            .foregroundStyle(isSelected ? .black : .black.opacity(0.35))
-            .padding(.horizontal, isSelected ? 26 : 10)
+            .foregroundStyle(isSelected ? .black : .black.opacity(0.45))
+            .padding(.horizontal, isSelected ? 26 : 13)
             .frame(height: 58)
             .background {
                 if isSelected {
