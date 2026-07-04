@@ -1,5 +1,5 @@
 //  MinigameFeature.swift
-//  Cature — 미니게임: 카드 뒤집기→가위바위보 (찬희).
+//  Cature — 미니게임: Catch Your Card (찬희).
 
 import CorePackage
 import Foundation
@@ -32,42 +32,58 @@ struct CatchYourCardView: View {
     @ObservedObject var viewModel: CatchYourCardViewModel
 
     private let gridColumns = Array(
-        repeating: GridItem(.flexible(), spacing: 10),
+        repeating: GridItem(.flexible(), spacing: 12),
         count: 3
     )
 
     var body: some View {
         ZStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 18) {
+                VStack(alignment: .leading, spacing: 20) {
                     header
                     gameBoard
                     retryButton
                 }
-                .padding(18)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 24)
             }
 
             if viewModel.phase.showsOverlay {
                 resultOverlay
             }
         }
+        .background(.background)
         .animation(.easeInOut(duration: 0.2), value: viewModel.cards)
         .animation(.easeInOut(duration: 0.2), value: viewModel.phase)
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Catch Your Card")
-                .font(.title.bold())
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Catch Your Card")
+                        .font(.largeTitle.bold())
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
 
-            HStack {
-                Label("\(viewModel.remainingSeconds)s", systemImage: "timer")
+                    Text("30초 안에 같은 생물 카드를 모두 찾아요")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
+
                 Spacer()
-                Text("\(viewModel.matchedPairCount)/6")
+
+                TimerBadge(remainingSeconds: viewModel.remainingSeconds)
             }
-            .font(.headline)
 
             ProgressView(value: viewModel.progress)
+                .tint(viewModel.remainingSeconds <= 10 ? .red : .primary)
+
+            HStack(spacing: 10) {
+                StatPill(title: "찾은 짝", value: "\(viewModel.matchedPairCount)/6")
+                StatPill(title: "카드", value: "\(viewModel.cards.count)")
+            }
         }
     }
 
@@ -79,6 +95,9 @@ struct CatchYourCardView: View {
                 }
             }
         }
+        .padding(12)
+        .background(.thinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
         .accessibilityElement(children: .contain)
     }
 
@@ -94,31 +113,79 @@ struct CatchYourCardView: View {
     }
 
     private var resultOverlay: some View {
-        VStack(spacing: 14) {
-            Image(systemName: viewModel.phase == .won ? "party.popper.fill" : "hourglass")
-                .font(.largeTitle)
+        ZStack {
+            Rectangle()
+                .fill(.ultraThinMaterial)
+                .ignoresSafeArea()
 
-            Text(viewModel.phase.title)
-                .font(.title.bold())
+            VStack(spacing: 16) {
+                Image(systemName: viewModel.phase == .won ? "party.popper.fill" : "hourglass")
+                    .font(.system(size: 44, weight: .bold))
 
-            Text(viewModel.phase.message)
-                .font(.body)
-                .multilineTextAlignment(.center)
+                Text(viewModel.phase.title)
+                    .font(.largeTitle.bold())
+                    .multilineTextAlignment(.center)
 
-            Button {
-                viewModel.restart()
-            } label: {
-                Label("다시 도전하기", systemImage: "arrow.clockwise")
-                    .frame(maxWidth: .infinity)
+                Text(viewModel.phase.message)
+                    .font(.body)
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(.secondary)
+
+                Button {
+                    viewModel.restart()
+                } label: {
+                    Label("다시 도전하기", systemImage: "arrow.clockwise")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
             }
-            .buttonStyle(.borderedProminent)
+            .padding(24)
+            .frame(maxWidth: 330)
+            .background(.regularMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+            .shadow(radius: 18)
+            .padding()
         }
-        .padding(24)
-        .frame(maxWidth: 320)
-        .background(.regularMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-        .shadow(radius: 18)
-        .padding()
+    }
+}
+
+struct TimerBadge: View {
+    let remainingSeconds: Int
+
+    var body: some View {
+        VStack(spacing: 2) {
+            Text("\(remainingSeconds)")
+                .font(.title.bold())
+                .monospacedDigit()
+            Text("sec")
+                .font(.caption.bold())
+                .foregroundStyle(.secondary)
+        }
+        .frame(width: 68, height: 68)
+        .background(.thinMaterial)
+        .clipShape(Circle())
+        .accessibilityLabel("남은 시간 \(remainingSeconds)초")
+    }
+}
+
+struct StatPill: View {
+    let title: String
+    let value: String
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Text(title)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Text(value)
+                .font(.caption.bold())
+                .monospacedDigit()
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(.thinMaterial)
+        .clipShape(Capsule())
     }
 }
 
@@ -129,26 +196,45 @@ struct CatchCardView: View {
     var body: some View {
         Button(action: action) {
             ZStack {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(card.isFaceUp || card.isMatched ? .regularMaterial : .thinMaterial)
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .strokeBorder(.secondary, lineWidth: 1)
-                    }
-
-                VStack(spacing: 8) {
-                    Text(card.isFaceUp || card.isMatched ? card.creature.symbol : "?")
-                        .font(.largeTitle.bold())
-
-                    Text(card.isFaceUp || card.isMatched ? card.creature.name : "Cature")
-                        .font(.caption.bold())
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.7)
+                if card.isFaceUp || card.isMatched {
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(.regularMaterial)
+                } else {
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(.primary)
                 }
-                .padding(8)
+
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .strokeBorder(card.isMatched ? .green : .secondary, lineWidth: card.isMatched ? 2 : 1)
+
+                if card.isFaceUp || card.isMatched {
+                    VStack(spacing: 8) {
+                        Text(card.creature.symbol)
+                            .font(.system(size: 30, weight: .bold))
+
+                        Text(card.creature.name)
+                            .font(.caption.bold())
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
+                    }
+                    .padding(8)
+                } else {
+                    VStack(spacing: 8) {
+                        Text("C")
+                            .font(.system(size: 30, weight: .bold))
+
+                        Text("Cature")
+                            .font(.caption.bold())
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
+                    }
+                    .foregroundStyle(.background)
+                    .padding(8)
+                }
             }
-            .aspectRatio(0.78, contentMode: .fit)
+            .aspectRatio(0.74, contentMode: .fit)
             .opacity(card.isMatched ? 0.68 : 1)
+            .scaleEffect(card.isFaceUp || card.isMatched ? 1 : 0.98)
             .rotation3DEffect(
                 .degrees(card.isFaceUp || card.isMatched ? 0 : 180),
                 axis: (x: 0, y: 1, z: 0)
