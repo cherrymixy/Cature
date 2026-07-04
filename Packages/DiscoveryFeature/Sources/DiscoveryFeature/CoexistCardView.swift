@@ -11,6 +11,8 @@ struct CoexistCardView: View {
     let species: Species?
     let candidate: AnalysisCandidate
 
+    @State private var imageURL: URL?
+
     private var title: String { species?.nameKo ?? candidate.displayName }
 
     var body: some View {
@@ -20,19 +22,24 @@ struct CoexistCardView: View {
                     .font(CatureFont.title)
                     .foregroundStyle(CatureColor.darkTextPrimary)
 
-                // usdz 미리보기 자리 (S8 ARFeature에서 실제 로드)
+                // 대표 이미지 (위키백과, 종 이름으로 조회)
                 RoundedRectangle(cornerRadius: CatureRadius.card, style: .continuous)
                     .fill(CatureColor.darkSurfaceElevated)
-                    .frame(height: 180)
+                    .frame(height: 200)
                     .overlay {
-                        VStack(spacing: CatureSpacing.xs) {
-                            Image(systemName: "cube.transparent")
-                                .font(.system(size: 40, weight: .thin))
-                            Text(species?.canExperience == true ? "usdz 미리보기" : "체험 에셋 없음")
-                                .font(CatureFont.caption)
+                        AsyncImage(url: imageURL) { phase in
+                            switch phase {
+                            case .success(let image):
+                                image.resizable().scaledToFill()
+                            case .failure:
+                                imagePlaceholder
+                            default:
+                                ProgressView().tint(CatureColor.accent)
+                            }
                         }
-                        .foregroundStyle(CatureColor.darkTextSecondary)
                     }
+                    .clipShape(RoundedRectangle(cornerRadius: CatureRadius.card, style: .continuous))
+                    .task { imageURL = await fetchRepresentativeImageURL(for: title) }
 
                 Text(card.intro)
                     .font(CatureFont.body)
@@ -46,6 +53,14 @@ struct CoexistCardView: View {
                     .padding(.top, CatureSpacing.sm)
             }
         }
+    }
+
+    private var imagePlaceholder: some View {
+        VStack(spacing: CatureSpacing.xs) {
+            Image(systemName: "photo").font(.system(size: 40, weight: .thin))
+            Text("대표 이미지 없음").font(CatureFont.caption)
+        }
+        .foregroundStyle(CatureColor.darkTextSecondary)
     }
 
     private func block(title: String, items: [String]) -> some View {
