@@ -44,8 +44,9 @@ final class DiscoveryViewModel {
         }
     }
 
-    func retake() {
-        step = .camera
+    /// 다시 찍기 = 카메라 재실행.
+    func retake() async {
+        await capture()
     }
 
     /// 후보 1개 확정(자동 확정 아님) → 공존 카드.
