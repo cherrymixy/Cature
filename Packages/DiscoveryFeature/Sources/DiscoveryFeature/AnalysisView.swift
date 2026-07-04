@@ -22,6 +22,7 @@ struct AnalysisView: View {
                     ForEach(candidates, id: \.self) { candidateCard($0) }
                 }
                 .padding(.horizontal, 15)
+                .padding(.top, 40)   // 뒤로 버튼과 여백 확보
                 .padding(.bottom, CatureSpacing.md)
             }
             selectButton
@@ -30,10 +31,10 @@ struct AnalysisView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("이녀석의 정체는?")
+            Text("이 친구는 누구일까요?")
                 .font(.system(size: 24, weight: .semibold))
                 .foregroundStyle(.black)
-            Text("맞는 녀석을 골라골라!")
+            Text("사진 속 생물을 AI가 분석했어요")
                 .font(.system(size: 14))
                 .foregroundStyle(.black.opacity(0.5))
         }
@@ -55,6 +56,12 @@ struct AnalysisView: View {
     // 후보 카드: 탭 → 하이라이트(라임), '선택하기'로 확정.
     private func candidateCard(_ candidate: AnalysisCandidate) -> some View {
         let isSelected = selected == candidate
+        let isTop = candidate == candidates.first
+        // % 필: top 후보는 기본 검정 배경+포인트 텍스트, 선택 시 포인트 배경. 나머지는 선택 시 검정+포인트.
+        let pillOnPoint = isTop && isSelected
+        let pillDark = (isTop && !isSelected) || (!isTop && isSelected)
+        let pillBG = pillOnPoint ? CatureColor.accent : (pillDark ? Color.black : Color(red: 0.89, green: 0.89, blue: 0.89))
+        let pillFG = pillOnPoint ? Color.black : (pillDark ? CatureColor.accent : Color(red: 0.72, green: 0.72, blue: 0.72))
         return Button { selected = candidate } label: {
             HStack(spacing: CatureSpacing.sm) {
                 VStack(alignment: .leading, spacing: 0) {
@@ -68,13 +75,10 @@ struct AnalysisView: View {
                 Spacer()
                 Text("\(Int((candidate.confidence * 100).rounded()))%")
                     .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(isSelected ? CatureColor.lime : Color(red: 0.72, green: 0.72, blue: 0.72))
+                    .foregroundStyle(pillFG)
                     .padding(.horizontal, 11)
                     .padding(.vertical, 2)
-                    .background(
-                        isSelected ? Color.black : Color(red: 0.89, green: 0.89, blue: 0.89),
-                        in: RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    )
+                    .background(pillBG, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
             .padding(.horizontal, 20)
             .frame(maxWidth: .infinity, minHeight: 70)
