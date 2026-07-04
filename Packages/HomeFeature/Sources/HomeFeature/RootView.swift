@@ -54,6 +54,7 @@ public struct RootView: View {
                 }
             }
             .mapStyle(.standard(elevation: .flat, pointsOfInterest: .excludingAll))
+            .grayscale(1.0)   // 모노톤(흑백) 지도 — 지도 레이어만 탈색, UI 오버레이는 색 유지
             .mapControls {
                 MapUserLocationButton()
                 MapCompass()
