@@ -3,7 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "DesignTokens",
-    platforms: [.iOS(.v17)],
+    platforms: [.iOS(.v17), .macOS(.v14)],   // macOS = 호스트 swift build/preview용(실타깃은 iOS 17)
     products: [
         .library(name: "DesignTokens", targets: ["DesignTokens"]),
     ],
