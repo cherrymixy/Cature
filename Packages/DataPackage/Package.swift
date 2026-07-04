@@ -17,5 +17,12 @@ let package = Package(
                 .product(name: "CorePackage", package: "CorePackage"),
             ]
         ),
+        .testTarget(
+            name: "DataPackageTests",
+            dependencies: [
+                "DataPackage",
+                .product(name: "CorePackage", package: "CorePackage"),
+            ]
+        ),
     ]
 )
