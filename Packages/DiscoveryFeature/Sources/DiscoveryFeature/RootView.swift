@@ -93,7 +93,7 @@ public struct RootView: View {
 struct AnalyzingView: View {
     var body: some View {
         VStack(spacing: CatureSpacing.md) {
-            ProgressView().tint(CatureColor.accent)
+            ProgressView().tint(Color.gray)   // 라이트 배경에 포인트(라임)는 안 보여 그레이로
             Text("분석 중…")
                 .font(CatureFont.body)
                 .foregroundStyle(.black.opacity(0.5))
