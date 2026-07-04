@@ -35,8 +35,8 @@ public enum CatureColor {
     public static let darkTextPrimary = Color(red: 0.96, green: 0.97, blue: 0.97)
     public static let darkTextSecondary = Color(red: 0.66, green: 0.68, blue: 0.70)
 
-    // MARK: FAB (라이트 화면 위 다크 원형 카메라 버튼)
-    public static let fab = Color(red: 0.11, green: 0.12, blue: 0.13)
+    // MARK: FAB (라이트 화면 위 다크 원형 카메라 버튼) — Figma #0d0f18
+    public static let fab = Color(red: 0.051, green: 0.059, blue: 0.094)
     public static let onFab = Color.white
 
     // MARK: 지도 마커 라벨 칩

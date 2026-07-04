@@ -86,17 +86,19 @@ struct RootView: View {
         }
     }
 
-    // MARK: 하단 바 — ⚠️ 임시 디자인. 최종 하단바 소유 = 예준(docs/contracts.md §6). 예준 확정 시 이 바 제거 + 콜백 연결.
-    //        알약형 탭(확장 시 숨김) + 스피드다이얼 FAB
+    // MARK: 하단 바 — Figma 105-543 최종 디자인. 프로스트 알약(선택=흰 알약 아이콘+라벨, 비선택=아이콘만) + 다크 조리개 FAB.
     private var bottomBar: some View {
         HStack(alignment: .bottom, spacing: CatureSpacing.sm) {
             if !fabExpanded {
-                HStack(spacing: 0) {
-                    tabButton(.home,    title: "홈",   icon: "map")
+                HStack(spacing: 4) {
+                    tabButton(.home,    title: "홈",   icon: "house.fill")
                     tabButton(.feature, title: "기능", icon: "gamecontroller")
-                    tabButton(.my,      title: "마이", icon: "person")
+                    tabButton(.my,      title: "마이", icon: "person.fill")
                 }
-                .caturePillTab(.light)     // DesignTokens PillTabStyle
+                .padding(6)
+                .background(.ultraThinMaterial, in: Capsule())
+                .overlay(Capsule().stroke(Color.white.opacity(0.5), lineWidth: 1))
+                .shadow(color: .black.opacity(0.06), radius: 10, y: 2)
                 .transition(.move(edge: .leading).combined(with: .opacity))
             }
 
@@ -121,16 +123,29 @@ struct RootView: View {
         .padding(.bottom, CatureSpacing.xs)
     }
 
+    // 선택 탭 = 흰 알약(아이콘 + 라벨), 비선택 = 아이콘만 (Figma 105-543).
     private func tabButton(_ tab: AppTab, title: String, icon: String) -> some View {
-        Button { selectedTab = tab } label: {
-            VStack(spacing: 3) {
-                Image(systemName: icon).font(.system(size: 18, weight: .semibold))
-                Text(title).font(CatureFont.caption)
+        let isSelected = selectedTab == tab
+        return Button { selectedTab = tab } label: {
+            HStack(spacing: 6) {
+                Image(systemName: icon).font(.system(size: 17, weight: .semibold))
+                if isSelected {
+                    Text(title).font(.system(size: 15, weight: .medium))
+                }
             }
-            .frame(maxWidth: .infinity)
-            .foregroundStyle(selectedTab == tab ? CatureColor.accent : CatureColor.textSecondary)
+            .foregroundStyle(isSelected ? .black : .black.opacity(0.4))
+            .padding(.horizontal, isSelected ? 18 : 13)
+            .frame(height: 44)
+            .background {
+                if isSelected {
+                    Capsule().fill(Color.white)
+                        .shadow(color: .black.opacity(0.08), radius: 5, y: 1)
+                }
+            }
+            .contentShape(Capsule())
         }
         .buttonStyle(.plain)
+        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isSelected)
     }
 
     // 스피드다이얼 액션(라벨 + 원형 아이콘 버튼)
@@ -158,7 +173,7 @@ struct RootView: View {
 
     private var fab: some View {
         Button { fabExpanded.toggle() } label: {
-            Image(systemName: fabExpanded ? "xmark" : "camera.fill")
+            Image(systemName: fabExpanded ? "xmark" : "camera.aperture")
                 .font(.system(size: 22, weight: .semibold))
                 .foregroundStyle(CatureColor.onFab)
                 .frame(width: 56, height: 56)
