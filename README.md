@@ -8,8 +8,8 @@ iOS 네이티브(SwiftUI + ARKit/RealityKit, usdz), 로컬 저장.
 - [`docs/협업_프로세스.md`](docs/협업_프로세스.md) — 3인 협업 모델·도구 분업
 - [`docs/playbook/00_통합.md`](docs/playbook/00_통합.md) — 빌드 플레이북 통합본(관문·타임라인)
 - [`docs/playbook/승아.md`](docs/playbook/승아.md) — 승아(Claude Code): 세팅+발견+AR
-- [`docs/playbook/찬희.md`](docs/playbook/찬희.md) — 찬희(Codex): 도감+홈
-- [`docs/playbook/예준.md`](docs/playbook/예준.md) — 예준(Codex): 미니게임+온보딩
+- [`docs/playbook/찬희.md`](docs/playbook/찬희.md) — 찬희(Codex): 도감+미니게임
+- [`docs/playbook/예준.md`](docs/playbook/예준.md) — 예준(Codex): 홈+온보딩
 
 ## 빌드하면서 생성되는 파일 (지금 없음)
 - 루트 `CLAUDE.md`, `AGENTS.md` — 승아 S0

@@ -18,8 +18,8 @@
 - `docs/`, 루트 컨텍스트 파일(`CLAUDE.md`·`AGENTS.md`)·`.gitignore`·`.gitattributes`.
 
 ## 건드리지 않는다 (팀원 소유)
-- `Packages/DexFeature`, `Packages/HomeFeature` — **찬희(Codex).**
-- `Packages/MinigameFeature`, `Packages/OnboardingFeature` — **예준(Codex).**
+- `Packages/DexFeature`, `Packages/MinigameFeature` — **찬희(Codex).**
+- `Packages/HomeFeature`, `Packages/OnboardingFeature` — **예준(Codex).**
 - 이 패키지들의 내부 구현·화면은 내가 만들지 않는다. 필요한 것은 **Core에 계약으로 노출**만.
 - 계약을 바꿔야 하면 코드가 아니라 **`docs/contracts.md`로 공표** + 싱크 승인(계약 변경 = 이벤트).
 
