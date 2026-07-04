@@ -18,6 +18,10 @@ public enum CatureColor {
     /// 자연 그린 accent (앱 AccentColor와 동일 계열).
     public static let accent = Color(red: 0.298, green: 0.667, blue: 0.478)
     public static let accentSoft = Color(red: 0.298, green: 0.667, blue: 0.478).opacity(0.15)
+    /// Figma 하이라이트 라임 (#f4fe7d)
+    public static let lime = Color(red: 0.957, green: 0.996, blue: 0.490)
+    /// 어두운 버튼/잉크 (#282828)
+    public static let ink = Color(red: 0.157, green: 0.157, blue: 0.157)
 
     // MARK: Light context (홈·지도)
     public static let surface = Color(red: 1.00, green: 1.00, blue: 1.00)

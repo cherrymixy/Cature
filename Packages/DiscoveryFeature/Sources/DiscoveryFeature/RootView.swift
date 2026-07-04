@@ -1,5 +1,5 @@
 //  RootView.swift
-//  DiscoveryFeature — 발견 플로우 진입점. .camera = 라이브 카메라 화면(Figma), 그 외 = 다크 카드 화면.
+//  DiscoveryFeature — 발견 플로우 진입점. .camera = 라이브 카메라(다크), 그 외 = 라이트 카드(Figma).
 
 import SwiftUI
 import DesignTokens
@@ -21,34 +21,49 @@ public struct RootView: View {
     }
 
     public var body: some View {
-        Group {
-            if case .camera = vm.step {
-                CameraScreen(
-                    controller: controller,
-                    onCaptured: { url in Task { await vm.ingest(url) } },
-                    onPickFallback: { Task { await vm.capture() } },
-                    onClose: onClose
-                )
-            } else {
-                ZStack(alignment: .topLeading) {
-                    CatureColor.darkSurface.ignoresSafeArea()
+        if case .camera = vm.step {
+            CameraScreen(
+                controller: controller,
+                onCaptured: { url in Task { await vm.ingest(url) } },
+                onPickFallback: { Task { await vm.capture() } },
+                onClose: onClose
+            )
+            .preferredColorScheme(.dark)
+        } else {
+            ZStack {
+                CatureColor.surface.ignoresSafeArea()
+                VStack(spacing: 0) {
+                    backBar
                     content
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .padding(CatureSpacing.lg)
-                    if let onClose {
-                        Button { onClose() } label: {
-                            Image(systemName: "xmark")
-                                .font(.system(size: 16, weight: .bold))
-                                .foregroundStyle(CatureColor.darkTextPrimary)
-                                .padding(CatureSpacing.sm)
-                        }
-                        .padding(CatureSpacing.md)
-                        .accessibilityLabel("닫기")
-                    }
                 }
             }
+            .preferredColorScheme(.light)
         }
-        .preferredColorScheme(.dark)
+    }
+
+    private var backBar: some View {
+        HStack {
+            Button { handleBack() } label: {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(.black)
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
+            }
+            .accessibilityLabel("뒤로")
+            Spacer()
+        }
+        .padding(.leading, CatureSpacing.xs)
+    }
+
+    /// 뒤로: 공존카드→후보, 수집→닫기, 그 외(분석/분석중/실패)→카메라.
+    private func handleBack() {
+        switch vm.step {
+        case .coexist:   vm.backToCandidates()
+        case .collected: onClose?()
+        default:         vm.retake()
+        }
     }
 
     @ViewBuilder
@@ -81,8 +96,9 @@ struct AnalyzingView: View {
             ProgressView().tint(CatureColor.accent)
             Text("분석 중…")
                 .font(CatureFont.body)
-                .foregroundStyle(CatureColor.darkTextSecondary)
+                .foregroundStyle(.black.opacity(0.5))
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
@@ -92,18 +108,24 @@ struct NotFoundView: View {
         VStack(spacing: CatureSpacing.md) {
             Image(systemName: "questionmark.circle")
                 .font(.system(size: 56, weight: .thin))
-                .foregroundStyle(CatureColor.darkTextSecondary)
+                .foregroundStyle(.black.opacity(0.35))
             Text("생물을 찾지 못했어요")
                 .font(CatureFont.headline)
-                .foregroundStyle(CatureColor.darkTextPrimary)
+                .foregroundStyle(.black)
             Text("조금 더 가까이, 밝은 곳에서 다시 담아볼까요?")
                 .font(CatureFont.caption)
-                .foregroundStyle(CatureColor.darkTextSecondary)
+                .foregroundStyle(.black.opacity(0.5))
                 .multilineTextAlignment(.center)
             Button("다시 찍기") { onRetake() }
-                .buttonStyle(.caturePrimary)
+                .font(.system(size: 16, weight: .medium))
+                .foregroundStyle(.white)
+                .padding(.horizontal, CatureSpacing.lg)
+                .frame(height: 52)
+                .background(CatureColor.ink, in: Capsule())
                 .padding(.top, CatureSpacing.sm)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(CatureSpacing.lg)
     }
 }
 
