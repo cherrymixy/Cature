@@ -20,7 +20,7 @@ final class DiscoveryViewModel {
     private(set) var step: DiscoveryStep = .camera
 
     private let deps: DiscoveryDependencies
-    private var lastPhoto: URL?
+    private(set) var lastPhoto: URL?   // 방금 찍은 사진(분석 화면에서 표시)
     private var lastLocation: LocationSample?
     private var lastCandidates: [AnalysisCandidate] = []
 
