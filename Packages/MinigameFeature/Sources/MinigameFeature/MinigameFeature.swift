@@ -42,18 +42,35 @@ struct MiniGameMenuView: View {
     @State private var showCatchPair = false
     @State private var showComingSoon = false
 
+    // 로고 + 본문 + 카드 4개를 한 그룹으로 세로 중앙 정렬.
     var body: some View {
-        ScrollView {
+        VStack(spacing: 0) {
+            Spacer(minLength: 0)
+
             VStack(alignment: .leading, spacing: 0) {
-                header
+                Image("minigame-logo", bundle: .module)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 200.597, height: 34.144)
+                    .accessibilityLabel("Mini Game")
+
+                Text("발견한 생물과 함께 지내는 방법을\n간단한 게임으로 확인해요")
+                    .font(.system(size: 16, weight: .medium))
+                    .tracking(-0.64)
+                    .lineSpacing(6)
+                    .foregroundStyle(.black.opacity(0.3))
+                    .padding(.top, 16)
+
                 gamesGrid
-                    .padding(.top, 56)
+                    .padding(.top, 40)
             }
-            .padding(.horizontal, 25)
-            .padding(.top, 56)       // 타이틀이 상단에 붙지 않도록 아래로
-            .padding(.bottom, 120)   // 플로팅 하단바에 카드가 가리지 않도록
             .frame(maxWidth: .infinity, alignment: .leading)
+
+            Spacer(minLength: 0)
         }
+        .padding(.horizontal, 25)
+        .padding(.bottom, 88)   // 하단 탭바(GNB)와 안 겹치게
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.white)
         .alert("준비 중이에요", isPresented: $showComingSoon) {
             Button("확인", role: .cancel) {}
@@ -67,34 +84,7 @@ struct MiniGameMenuView: View {
         #endif
     }
 
-    // Catch the Pair 흐름: 시작 전 안내 → 게임. 앱 탭바 위를 덮는 전체화면.
-    private var catchPairFlow: some View {
-        CatchPairFlowView(
-            collectionRepository: collectionRepository,
-            speciesRepository: speciesRepository,
-            onClose: { showCatchPair = false }
-        )
-    }
-
-    // MARK: 헤더
-
-    private var header: some View {
-        VStack(alignment: .leading, spacing: 13) {
-            Text("Mini Game")
-                .font(.system(size: 28, weight: .medium))
-                .tracking(-1.12)
-                .foregroundStyle(.black)   // 좌측 끝을 본문과 정렬
-
-            Text("발견한 생물과 함께 지내는 방법을\n간단한 게임으로 확인해요")
-                .font(.system(size: 16, weight: .medium))
-                .tracking(-0.64)
-                .lineSpacing(6)
-                .foregroundStyle(.black.opacity(0.3))
-        }
-    }
-
-    // MARK: 카드 그리드 (2 × 2, 균등 폭)
-
+    // 카드 2 × 2 (166×220, 11 간격)
     private let columns = [
         GridItem(.flexible(), spacing: 11),
         GridItem(.flexible(), spacing: 11),
@@ -102,23 +92,24 @@ struct MiniGameMenuView: View {
 
     private var gamesGrid: some View {
         LazyVGrid(columns: columns, spacing: 11) {
-            Button {
-                showCatchPair = true
-            } label: {
-                PairGameCard()
-            }
-            .buttonStyle(.plain)
+            Button { showCatchPair = true } label: { PairGameCard() }
+                .buttonStyle(.plain)
 
-            Button {
-                showComingSoon = true
-            } label: {
-                QuizGameCard()
-            }
-            .buttonStyle(.plain)
+            Button { showComingSoon = true } label: { QuizGameCard() }
+                .buttonStyle(.plain)
 
             LockedGameCard(levelLabel: "Lv 100 요구")
             LockedGameCard(levelLabel: "Lv 200 요구")
         }
+    }
+
+    // Catch the Pair 흐름: 시작 전 안내 → 게임. 앱 탭바 위를 덮는 전체화면.
+    private var catchPairFlow: some View {
+        CatchPairFlowView(
+            collectionRepository: collectionRepository,
+            speciesRepository: speciesRepository,
+            onClose: { showCatchPair = false }
+        )
     }
 }
 
