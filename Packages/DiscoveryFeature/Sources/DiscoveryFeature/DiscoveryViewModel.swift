@@ -5,11 +5,6 @@ import Foundation
 import Observation
 import CorePackage
 
-enum DiscoveryMode: Hashable, Sendable {
-    case discover      // 발견
-    case experience    // 체험(AR)
-}
-
 enum DiscoveryStep {
     case camera
     case analyzing
@@ -23,7 +18,6 @@ enum DiscoveryStep {
 @Observable
 final class DiscoveryViewModel {
     private(set) var step: DiscoveryStep = .camera
-    var mode: DiscoveryMode = .discover
 
     private let deps: DiscoveryDependencies
     private var lastPhoto: URL?
@@ -93,7 +87,6 @@ final class DiscoveryViewModel {
     }
 
     func reset() {
-        mode = .discover
         step = .camera
     }
 
