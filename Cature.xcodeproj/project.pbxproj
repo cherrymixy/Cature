@@ -17,13 +17,13 @@
 		400000000000000000000008 /* HomeFeature in Frameworks */ = {isa = PBXBuildFile; productRef = 300000000000000000000008 /* HomeFeature */; };
 		400000000000000000000009 /* MinigameFeature in Frameworks */ = {isa = PBXBuildFile; productRef = 300000000000000000000009 /* MinigameFeature */; };
 		40000000000000000000000A /* OnboardingFeature in Frameworks */ = {isa = PBXBuildFile; productRef = 30000000000000000000000A /* OnboardingFeature */; };
-		400000000000000000000011 /* Assets3D/chameleon.usdz in Resources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000011 /* Assets3D/chameleon.usdz */; };
+		400000000000000000000011 /* Assets3D/cat.usdz in Resources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000011 /* Assets3D/cat.usdz */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		100000000000000000000005 /* CatureApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CatureApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		100000000000000000000010 /* Config/Base.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config/Base.xcconfig; sourceTree = "<group>"; };
-		100000000000000000000011 /* Assets3D/chameleon.usdz */ = {isa = PBXFileReference; lastKnownFileType = file; path = Assets3D/chameleon.usdz; sourceTree = "<group>"; };
+		100000000000000000000011 /* Assets3D/cat.usdz */ = {isa = PBXFileReference; lastKnownFileType = file; path = Assets3D/cat.usdz; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -55,7 +55,7 @@
 			isa = PBXGroup;
 			children = (
 				100000000000000000000010 /* Config/Base.xcconfig */,
-				100000000000000000000011 /* Assets3D/chameleon.usdz */,
+				100000000000000000000011 /* Assets3D/cat.usdz */,
 				100000000000000000000006 /* CatureApp */,
 				100000000000000000000003 /* Products */,
 			);
@@ -155,7 +155,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				400000000000000000000011 /* Assets3D/chameleon.usdz in Resources */,
+				400000000000000000000011 /* Assets3D/cat.usdz in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

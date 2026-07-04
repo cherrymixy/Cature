@@ -104,8 +104,8 @@ struct DataPackageTests {
         try await collection.recordCapture(speciesId: "chameleon", at: Date(timeIntervalSince1970: 0))
         try await collection.recordCapture(speciesId: "lizard", at: Date(timeIntervalSince1970: 0))
 
-        let species = LocalSpeciesRepository(species: SampleData.species)  // 4종
+        let species = LocalSpeciesRepository(species: SampleData.species)  // 5종
         let rate = try await achievementRate(collection: collection, species: species)
-        #expect(rate == 0.5)   // 발견 2 / 전체 4
+        #expect(rate == 0.4)   // 발견 2 / 전체 5
     }
 }
