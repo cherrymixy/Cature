@@ -23,16 +23,28 @@ public struct RootView: View {
     }
 
     public var body: some View {
-        ZStack {
+        ZStack(alignment: .topLeading) {
             CatureColor.darkSurface.ignoresSafeArea()
             content
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .padding(CatureSpacing.lg)
+            if let onClose {
+                Button { onClose() } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundStyle(CatureColor.darkTextPrimary)
+                        .padding(CatureSpacing.sm)
+                }
+                .padding(CatureSpacing.md)
+                .accessibilityLabel("닫기")
+            }
         }
         .preferredColorScheme(.dark)
         .task {
-            // 발견 진입 → 커버 안정화 후 바로 카메라.
+            // 발견 진입 → 커버 안정화 후 바로 카메라(중간 페이지 없음).
             guard !didStart else { return }
             didStart = true
+            vm.onDismiss = onClose
             try? await Task.sleep(for: .milliseconds(350))
             if case .camera = vm.step { await vm.capture() }
         }
@@ -42,7 +54,9 @@ public struct RootView: View {
     private var content: some View {
         switch vm.step {
         case .camera:
-            CameraView(vm: vm, onClose: onClose)
+            ProgressView()      // 카메라 여는 중(중간 페이지 없음)
+                .tint(CatureColor.accent)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         case .analyzing:
             AnalyzingView()
         case .candidates(let candidates):
@@ -56,7 +70,7 @@ public struct RootView: View {
                 name: name, captureCount: count, achievement: rate,
                 canExperience: canExperience,
                 onExperience: onEnterExperience,
-                onConfirm: { vm.reset() }
+                onConfirm: { onClose?() }
             )
         }
     }
