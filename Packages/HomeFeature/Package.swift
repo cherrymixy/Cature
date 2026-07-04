@@ -17,6 +17,9 @@ let package = Package(
             dependencies: [
                 .product(name: "CorePackage", package: "CorePackage"),
                 .product(name: "DesignTokens", package: "DesignTokens"),
+            ],
+            resources: [
+                .process("Resources"),
             ]
         ),
     ]

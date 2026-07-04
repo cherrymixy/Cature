@@ -1,7 +1,6 @@
 import CoreLocation
 import CorePackage
 import DesignTokens
-import MapKit
 import SwiftUI
 
 public struct RootView: View {
@@ -10,9 +9,8 @@ public struct RootView: View {
     private let speciesRepository: any SpeciesRepository
     private let locationService: any LocationService
 
-    @State private var creatures: [HomeCreature] = []
-    @State private var selectedCreatureId: String?
-    @State private var cameraPosition: MapCameraPosition = .region(Self.initialRegion)
+    @State private var discoveredCount = 0
+    @State private var distanceText = "120m"
 
     public init(
         collectionRepository: any CollectionRepository = MockCollectionRepository(),
@@ -27,339 +25,187 @@ public struct RootView: View {
     }
 
     public var body: some View {
-        ZStack(alignment: .topLeading) {
-            mapLayer
+        GeometryReader { geometry in
+            let size = geometry.size
+            let scale = max(size.width / Figma.baseWidth, size.height / Figma.baseHeight)
+            let canvas = CGSize(width: size.width / scale, height: size.height / scale)
 
-            VStack(alignment: .leading, spacing: CatureSpacing.lg) {
-                titleSection
-                filterRail
-                Spacer()
-                creatureCards
-                bottomBar
+            ZStack(alignment: .topLeading) {
+                Image("home-map", bundle: .module)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: Figma.mapWidth, height: Figma.mapHeight)
+                    .rotationEffect(.degrees(90))
+                    .opacity(0.5)
+                    .position(x: 221, y: 299)
+
+                LinearGradient(
+                    colors: [
+                        CatureColor.accentSoft.opacity(0.7),
+                        CatureColor.surface.opacity(0.0),
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(width: Figma.baseWidth, height: 266)
+                .position(x: Figma.baseWidth / 2, y: 132)
+
+                Text("Cature")
+                    .font(.system(size: 48, weight: .semibold))
+                    .foregroundStyle(CatureColor.textPrimary.opacity(0.9))
+                    .kerning(-3.36)
+                    .position(x: 97, y: 104)
+
+                categoryRail(discoveredCount: discoveredCount)
+                    .position(x: 224, y: 152)
+
+                FigmaMarker(assetName: "marker-chameleon", label: "카멜레온")
+                    .position(x: 91, y: 304)
+
+                FigmaMarker(assetName: "marker-tree", label: "은행나무")
+                    .position(x: 286, y: 348)
+
+                FigmaMarker(assetName: "marker-duck", label: "청둥오리")
+                    .position(x: 230, y: 502)
+
+                cardRail(distanceText: distanceText)
+                    .position(x: 298, y: 672)
+
+                bottomNavigation
+                    .position(x: 212, y: 788)
             }
-            .padding(.horizontal, CatureSpacing.lg)
-            .padding(.top, CatureSpacing.xxl)
-            .padding(.bottom, CatureSpacing.lg)
+            .frame(width: canvas.width, height: canvas.height)
+            .scaleEffect(scale, anchor: .topLeading)
+            .frame(width: size.width, height: size.height, alignment: .topLeading)
+            .background(CatureColor.surface)
+            .clipped()
+            .ignoresSafeArea()
         }
         .task {
-            await loadHomeData()
+            await loadMockBackedState()
         }
     }
 
-    private var mapLayer: some View {
-        Map(position: $cameraPosition) {
-            ForEach(creatures) { creature in
-                Annotation("", coordinate: creature.coordinate) {
-                    CreatureMarker(
-                        creature: creature,
-                        isSelected: creature.id == selectedCreatureId
-                    )
-                    .onTapGesture {
-                        selectedCreatureId = creature.id
-                    }
-                }
-            }
+    private func categoryRail(discoveredCount: Int) -> some View {
+        HStack(spacing: 5) {
+            CircleButton(systemName: "plus")
+            CategoryChip(title: "Nearby", systemName: "mappin.and.ellipse", count: nil, isSelected: true)
+            CategoryChip(title: "Home", systemName: nil, count: max(discoveredCount, 3), isSelected: false)
+            CategoryChip(title: "Office", systemName: nil, count: 6, isSelected: false)
+            CategoryChip(title: "Addxd", systemName: nil, count: 1, isSelected: false)
         }
-        .mapStyle(.standard(elevation: .flat, pointsOfInterest: .excludingAll))
-        .ignoresSafeArea()
-        .overlay(CatureColor.surface.opacity(0.64).ignoresSafeArea())
+        .frame(height: 38)
     }
 
-    private var titleSection: some View {
-        Text("Cature")
-            .font(CatureFont.largeTitle)
-            .foregroundStyle(CatureColor.textPrimary)
-            .padding(.top, CatureSpacing.xl)
-    }
-
-    private var filterRail: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: CatureSpacing.xs) {
-                CircleButton(systemName: "plus")
-                FilterChip(title: "Nearby", systemName: "mappin.and.ellipse", count: nil, isSelected: true)
-                FilterChip(title: "Home", systemName: nil, count: 3, isSelected: false)
-                FilterChip(title: "Office", systemName: nil, count: 6, isSelected: false)
-                FilterChip(title: "Around", systemName: nil, count: 1, isSelected: false)
-            }
-            .padding(.trailing, CatureSpacing.lg)
+    private func cardRail(distanceText: String) -> some View {
+        HStack(spacing: 16) {
+            CreatureCard(isSelected: true, distanceText: distanceText)
+            CreatureCard(isSelected: false, distanceText: distanceText)
         }
     }
 
-    private var creatureCards: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: CatureSpacing.md) {
-                ForEach(creatures) { creature in
-                    CreatureCard(
-                        creature: creature,
-                        isSelected: creature.id == selectedCreatureId
-                    )
-                    .onTapGesture {
-                        selectedCreatureId = creature.id
-                        cameraPosition = .region(creature.focusRegion)
-                    }
-                }
-            }
-            .padding(.trailing, CatureSpacing.xxl)
-        }
-    }
-
-    private var bottomBar: some View {
-        HStack(alignment: .bottom, spacing: CatureSpacing.md) {
-            HStack(spacing: CatureSpacing.lg) {
+    private var bottomNavigation: some View {
+        HStack(spacing: 14) {
+            HStack(spacing: 15) {
                 BottomTab(systemName: "house.fill", title: "Home", isSelected: true)
                 BottomTab(systemName: "checklist", title: nil, isSelected: false)
                 BottomTab(systemName: "person.fill", title: nil, isSelected: false)
             }
-            .padding(.horizontal, CatureSpacing.md)
-            .padding(.vertical, CatureSpacing.sm)
+            .frame(width: 262, height: 58)
             .background(.ultraThinMaterial)
             .clipShape(Capsule())
-            .shadow(color: CatureColor.textSecondary.opacity(0.18), radius: 18, y: 10)
-
-            Spacer()
-
-            Button(action: {}) {
-                Image(systemName: "camera.aperture")
-                    .font(CatureFont.largeTitle)
-                    .foregroundStyle(CatureColor.onFab)
-                    .frame(width: 74, height: 74)
-                    .background(CatureColor.fab)
-                    .clipShape(Circle())
+            .overlay(alignment: .leading) {
+                Capsule()
+                    .fill(CatureColor.surface)
+                    .frame(width: 122, height: 58)
+                    .shadow(color: CatureColor.textSecondary.opacity(0.08), radius: 9, x: -1, y: 1)
             }
+            .overlay(alignment: .leading) {
+                BottomTab(systemName: "house.fill", title: "Home", isSelected: true)
+                    .frame(width: 122, height: 58)
+            }
+            .shadow(color: CatureColor.textSecondary.opacity(0.08), radius: 13, y: 2)
+
+            CameraButton()
         }
     }
 
     @MainActor
-    private func loadHomeData() async {
+    private func loadMockBackedState() async {
         do {
-            async let speciesResult = speciesRepository.allSpecies()
             async let entriesResult = collectionRepository.allEntries()
             async let sightingsResult = sightingRepository.allSightings()
             async let locationResult = locationService.currentLocation()
+            _ = try await speciesRepository.allSpecies()
 
-            let species = try await speciesResult
             let entries = try await entriesResult
             let sightings = try await sightingsResult
             let currentLocation = await locationResult
 
-            let speciesById = Dictionary(uniqueKeysWithValues: species.map { ($0.id, $0) })
-            let discovered = Set(entries.filter(\.discovered).map(\.speciesId))
-            let visibleSightings = sightings.filter { sighting in
-                discovered.contains(sighting.speciesId)
-                    && sighting.latitude != nil
-                    && sighting.longitude != nil
+            discoveredCount = max(entries.filter(\.discovered).count, 3)
+
+            guard
+                let currentLocation,
+                let first = sightings.first(where: { $0.latitude != nil && $0.longitude != nil }),
+                let latitude = first.latitude,
+                let longitude = first.longitude
+            else {
+                distanceText = "120m"
+                return
             }
 
-            let mapped = visibleSightings.compactMap { sighting -> HomeCreature? in
-                guard let species = speciesById[sighting.speciesId] else { return nil }
-                return HomeCreature(
-                    species: species,
-                    sighting: sighting,
-                    distanceText: Self.distanceText(from: currentLocation, to: sighting)
-                )
-            }
-
-            creatures = mapped
-            selectedCreatureId = mapped.first?.id
-            if let first = mapped.first {
-                cameraPosition = .region(first.focusRegion)
-            }
+            let current = CLLocation(latitude: currentLocation.latitude, longitude: currentLocation.longitude)
+            let target = CLLocation(latitude: latitude, longitude: longitude)
+            let meters = Int(current.distance(from: target).rounded())
+            distanceText = meters > 0 ? "\(meters)m" : "120m"
         } catch {
-            creatures = []
-            selectedCreatureId = nil
-        }
-    }
-
-    private static let initialRegion = MKCoordinateRegion(
-        center: CLLocationCoordinate2D(latitude: 37.5665, longitude: 126.9780),
-        span: MKCoordinateSpan(latitudeDelta: 0.008, longitudeDelta: 0.008)
-    )
-
-    private static func distanceText(from location: LocationSample?, to sighting: Sighting) -> String {
-        guard
-            let location,
-            let latitude = sighting.latitude,
-            let longitude = sighting.longitude
-        else {
-            return "거리 확인 중"
-        }
-
-        let current = CLLocation(latitude: location.latitude, longitude: location.longitude)
-        let target = CLLocation(latitude: latitude, longitude: longitude)
-        let meters = current.distance(from: target)
-
-        if meters >= 1_000 {
-            return "\(String(format: "%.1f", meters / 1_000))km"
-        }
-        return "\(Int(meters.rounded()))m"
-    }
-}
-
-private struct HomeCreature: Identifiable, Hashable {
-    let species: Species
-    let sighting: Sighting
-    let distanceText: String
-
-    var id: String { sighting.id }
-    var title: String { displayName(for: species) }
-    var subtitle: String { species.nameKo }
-    var coordinate: CLLocationCoordinate2D {
-        CLLocationCoordinate2D(
-            latitude: sighting.latitude ?? 37.5665,
-            longitude: sighting.longitude ?? 126.9780
-        )
-    }
-    var focusRegion: MKCoordinateRegion {
-        MKCoordinateRegion(
-            center: coordinate,
-            span: MKCoordinateSpan(latitudeDelta: 0.006, longitudeDelta: 0.006)
-        )
-    }
-    var markerSymbol: String {
-        switch species.id {
-        case "chameleon": "leaf.fill"
-        case "tree_frog": "leaf.fill"
-        case "ladybug": "ladybug.fill"
-        case "cat": "cat.fill"
-        default: "pawprint.fill"
-        }
-    }
-
-    private func displayName(for species: Species) -> String {
-        switch species.id {
-        case "chameleon": "Chameleon"
-        case "tree_frog": "Tree frog"
-        case "ladybug": "Ladybug"
-        case "cat": "Cat"
-        default: species.nameKo
+            discoveredCount = 3
+            distanceText = "120m"
         }
     }
 }
 
-private struct CreatureMarker: View {
-    let creature: HomeCreature
-    let isSelected: Bool
-
-    var body: some View {
-        VStack(spacing: 0) {
-            ZStack {
-                Circle()
-                    .fill(isSelected ? CatureColor.accentSoft : CatureColor.surfaceSecondary)
-                Circle()
-                    .stroke(CatureColor.surface, lineWidth: 6)
-                Image(systemName: creature.markerSymbol)
-                    .font(CatureFont.largeTitle)
-                    .foregroundStyle(isSelected ? CatureColor.accent : CatureColor.textSecondary)
-            }
-            .frame(width: isSelected ? 96 : 88, height: isSelected ? 96 : 88)
-            .shadow(color: CatureColor.textSecondary.opacity(0.18), radius: 16, y: 8)
-
-            Text(creature.subtitle)
-                .font(CatureFont.callout.weight(.bold))
-                .foregroundStyle(CatureColor.darkTextPrimary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.72)
-                .padding(.horizontal, CatureSpacing.sm)
-                .padding(.vertical, CatureSpacing.xs)
-                .background(CatureColor.fab.opacity(0.78))
-                .clipShape(Capsule())
-                .overlay(alignment: .bottom) {
-                    Triangle()
-                        .fill(CatureColor.fab.opacity(0.78))
-                        .frame(width: 16, height: 10)
-                        .offset(y: 9)
-                }
-        }
-    }
+private enum Figma {
+    static let baseWidth: CGFloat = 393
+    static let baseHeight: CGFloat = 852
+    static let mapWidth: CGFloat = 959.493
+    static let mapHeight: CGFloat = 753.202
 }
 
-private struct CreatureCard: View {
-    let creature: HomeCreature
-    let isSelected: Bool
-
-    var body: some View {
-        HStack(alignment: .center, spacing: CatureSpacing.md) {
-            VStack(alignment: .leading, spacing: CatureSpacing.xs) {
-                Text(creature.title)
-                    .font(CatureFont.largeTitle)
-                    .foregroundStyle(CatureColor.textPrimary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.72)
-
-                Text(creature.subtitle)
-                    .font(CatureFont.headline)
-                    .foregroundStyle(CatureColor.textSecondary)
-
-                Spacer(minLength: CatureSpacing.xs)
-
-                Text("보유중")
-                    .font(CatureFont.caption.weight(.bold))
-                    .foregroundStyle(CatureColor.onFab)
-                    .padding(.horizontal, CatureSpacing.sm)
-                    .padding(.vertical, CatureSpacing.xs)
-                    .background(CatureColor.fab)
-                    .clipShape(Capsule())
-
-                Text("\(creature.distanceText) · 발견 확률 높음")
-                    .font(CatureFont.callout)
-                    .foregroundStyle(CatureColor.textSecondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.72)
-            }
-
-            Spacer(minLength: CatureSpacing.sm)
-
-            ZStack {
-                Circle()
-                    .fill(CatureColor.accentSoft)
-                Image(systemName: creature.markerSymbol)
-                    .font(CatureFont.largeTitle)
-                    .foregroundStyle(CatureColor.accent)
-            }
-            .frame(width: 118, height: 118)
-        }
-        .padding(CatureSpacing.lg)
-        .frame(width: 312, height: 150)
-        .background(isSelected ? CatureColor.accentSoft : CatureColor.surface)
-        .clipShape(RoundedRectangle(cornerRadius: CatureRadius.card, style: .continuous))
-        .shadow(color: CatureColor.textSecondary.opacity(isSelected ? 0.18 : 0.10), radius: 18, y: 8)
-    }
-}
-
-private struct FilterChip: View {
+private struct CategoryChip: View {
     let title: String
     let systemName: String?
     let count: Int?
     let isSelected: Bool
 
     var body: some View {
-        HStack(spacing: CatureSpacing.xs) {
+        HStack(spacing: 5) {
             if let systemName {
                 Image(systemName: systemName)
-                    .font(CatureFont.callout.weight(.semibold))
+                    .font(.system(size: 13, weight: .medium))
             }
             if let count {
                 Text("\(count)")
-                    .font(CatureFont.callout.weight(.semibold))
-                    .foregroundStyle(CatureColor.textSecondary)
-                    .frame(width: 26, height: 26)
-                    .background(CatureColor.surface)
-                    .clipShape(Circle())
+                    .font(.system(size: 13.5, weight: .regular))
+                    .foregroundStyle(CatureColor.textPrimary.opacity(0.7))
+                    .frame(width: 19, height: 19)
+                    .background(CatureColor.surfaceSecondary)
+                    .clipShape(RoundedRectangle(cornerRadius: 9.5, style: .continuous))
             }
             Text(title)
-                .font(CatureFont.headline)
+                .font(.system(size: 16, weight: .medium))
+                .foregroundStyle(isSelected ? CatureColor.textPrimary : CatureColor.textPrimary.opacity(0.7))
                 .lineLimit(1)
+                .minimumScaleFactor(0.7)
         }
-        .foregroundStyle(CatureColor.textPrimary)
-        .padding(.horizontal, CatureSpacing.md)
-        .frame(height: 56)
-        .background(isSelected ? CatureColor.accentSoft : CatureColor.surface.opacity(0.94))
+        .padding(.horizontal, isSelected ? 18 : 10)
+        .frame(width: isSelected ? 104 : 86, height: 38)
+        .background(isSelected ? CatureColor.accentSoft.opacity(2.5) : CatureColor.surface)
         .clipShape(Capsule())
         .overlay {
             Capsule()
-                .stroke(CatureColor.surfaceSecondary, lineWidth: isSelected ? 0 : 1)
+                .stroke(CatureColor.textPrimary.opacity(isSelected ? 0 : 0.1), lineWidth: 1)
         }
-        .shadow(color: CatureColor.textSecondary.opacity(0.10), radius: 8, y: 3)
     }
 }
 
@@ -368,12 +214,114 @@ private struct CircleButton: View {
 
     var body: some View {
         Image(systemName: systemName)
-            .font(CatureFont.title)
+            .font(.system(size: 20, weight: .regular))
             .foregroundStyle(CatureColor.textPrimary)
-            .frame(width: 56, height: 56)
+            .frame(width: 38, height: 38)
             .background(CatureColor.surface)
             .clipShape(Circle())
-            .shadow(color: CatureColor.textSecondary.opacity(0.12), radius: 8, y: 3)
+    }
+}
+
+private struct FigmaMarker: View {
+    let assetName: String
+    let label: String
+
+    var body: some View {
+        VStack(spacing: -6) {
+            Image(assetName, bundle: .module)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 88, height: 88)
+
+            Text(label)
+                .font(.system(size: 12.3, weight: .medium))
+                .foregroundStyle(CatureColor.onFab)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+                .padding(.horizontal, 9)
+                .frame(height: 31, alignment: .top)
+                .padding(.top, 4)
+                .background {
+                    MarkerLabelShape()
+                        .fill(CatureColor.fab.opacity(0.78))
+                        .frame(width: 60, height: 31)
+                }
+        }
+        .frame(width: 88)
+    }
+}
+
+private struct MarkerLabelShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        let pointerHeight: CGFloat = 8
+        let capsule = CGRect(x: rect.minX, y: rect.minY, width: rect.width, height: rect.height - pointerHeight)
+        var path = Path()
+        path.addRoundedRect(in: capsule, cornerSize: CGSize(width: 15, height: 15))
+        path.move(to: CGPoint(x: rect.midX - 8, y: capsule.maxY - 1))
+        path.addLine(to: CGPoint(x: rect.midX, y: rect.maxY))
+        path.addLine(to: CGPoint(x: rect.midX + 8, y: capsule.maxY - 1))
+        path.closeSubpath()
+        return path
+    }
+}
+
+private struct CreatureCard: View {
+    let isSelected: Bool
+    let distanceText: String
+
+    var body: some View {
+        HStack(alignment: .bottom, spacing: 0) {
+            VStack(alignment: .leading, spacing: 15) {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("Chameleon")
+                        .font(.system(size: 28, weight: .semibold))
+                        .kerning(-1.96)
+                        .foregroundStyle(CatureColor.textPrimary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.72)
+
+                    Text("카멜레온")
+                        .font(.system(size: 14, weight: .medium))
+                        .kerning(-0.7)
+                        .foregroundStyle(CatureColor.textPrimary.opacity(0.5))
+                }
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("보유중")
+                        .font(.system(size: 11.3, weight: .medium))
+                        .foregroundStyle(CatureColor.onFab)
+                        .frame(width: 48, height: 18)
+                        .background(CatureColor.fab)
+                        .clipShape(Capsule())
+
+                    Text("\(distanceText) · 발견 확률 높음")
+                        .font(.system(size: 12.7, weight: .medium))
+                        .kerning(-0.38)
+                        .foregroundStyle(CatureColor.textPrimary.opacity(0.5))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+                }
+            }
+            .frame(width: 131, alignment: .leading)
+
+            Spacer(minLength: 0)
+
+            Image("card-chameleon", bundle: .module)
+                .resizable()
+                .scaledToFill()
+                .frame(width: 101, height: 104)
+                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .scaleEffect(x: -1, y: -1)
+                .rotationEffect(.degrees(180))
+        }
+        .padding(.top, 16)
+        .padding(.leading, 16)
+        .padding(.trailing, 18)
+        .padding(.bottom, 13)
+        .frame(width: 282, height: 133)
+        .background(isSelected ? CatureColor.accentSoft.opacity(2.5) : CatureColor.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .shadow(color: CatureColor.textSecondary.opacity(isSelected ? 0.05 : 0.04), radius: isSelected ? 6 : 2)
     }
 }
 
@@ -383,49 +331,40 @@ private struct BottomTab: View {
     let isSelected: Bool
 
     var body: some View {
-        HStack(spacing: CatureSpacing.xs) {
+        HStack(spacing: 9) {
             Image(systemName: systemName)
-                .font(CatureFont.title)
+                .font(.system(size: 23, weight: .bold))
             if let title {
                 Text(title)
-                    .font(CatureFont.headline)
+                    .font(.system(size: 15.2, weight: .medium))
+                    .kerning(-0.46)
             }
         }
         .foregroundStyle(isSelected ? CatureColor.textPrimary : CatureColor.textSecondary)
-        .frame(width: isSelected ? 152 : 52, height: 58)
-        .background(isSelected ? CatureColor.surface : Color.clear)
-        .clipShape(Capsule())
+        .frame(width: isSelected ? 122 : 52, height: 58)
     }
 }
 
-private struct Triangle: Shape {
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        path.move(to: CGPoint(x: rect.midX, y: rect.maxY))
-        path.addLine(to: CGPoint(x: rect.minX, y: rect.minY))
-        path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
-        path.closeSubpath()
-        return path
+private struct CameraButton: View {
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(CatureColor.fab)
+                .frame(width: 58, height: 58)
+
+            ForEach(0..<4, id: \.self) { index in
+                Capsule()
+                    .fill(CatureColor.onFab)
+                    .frame(width: 12, height: 27)
+                    .rotationEffect(.degrees(Double(index) * 90 + 45))
+                    .offset(y: -11)
+                    .rotationEffect(.degrees(Double(index) * 90))
+            }
+        }
     }
 }
 
 private enum HomePreviewData {
-    static var creature: HomeCreature {
-        HomeCreature(
-            species: Species(id: "chameleon", nameKo: "카멜레온", category: "파충류", usdzAsset: "chameleon.usdz", thumbnail: "chameleon"),
-            sighting: Sighting(
-                id: "preview-chameleon",
-                speciesId: "chameleon",
-                photoPath: "mock/chameleon.jpg",
-                latitude: 37.5661,
-                longitude: 126.9768,
-                locationName: "Nearby",
-                createdAt: Date(timeIntervalSinceReferenceDate: 783_648_000)
-            ),
-            distanceText: "120m"
-        )
-    }
-
     static var collectionRepository: MockCollectionRepository {
         let now = Date(timeIntervalSinceReferenceDate: 783_648_000)
         return MockCollectionRepository(entries: [
@@ -438,9 +377,7 @@ private enum HomePreviewData {
     static var sightingRepository: MockSightingRepository {
         let now = Date(timeIntervalSinceReferenceDate: 783_648_000)
         return MockSightingRepository(sightings: [
-            Sighting(id: "home-chameleon", speciesId: "chameleon", photoPath: "mock/chameleon.jpg", latitude: 37.5661, longitude: 126.9768, locationName: "Nearby", createdAt: now),
-            Sighting(id: "home-tree-frog", speciesId: "tree_frog", photoPath: "mock/tree-frog.jpg", latitude: 37.5671, longitude: 126.9788, locationName: "Office", createdAt: now),
-            Sighting(id: "home-ladybug", speciesId: "ladybug", photoPath: "mock/ladybug.jpg", latitude: 37.5652, longitude: 126.9793, locationName: "Home", createdAt: now),
+            Sighting(id: "home-chameleon", speciesId: "chameleon", photoPath: "mock/chameleon.jpg", latitude: 37.5655, longitude: 126.9774, locationName: "Nearby", createdAt: now),
         ])
     }
 }
@@ -456,29 +393,31 @@ private enum HomePreviewData {
     )
 }
 
-#Preview("Creature Marker") {
-    CreatureMarker(creature: HomePreviewData.creature, isSelected: true)
+#Preview("Marker") {
+    FigmaMarker(assetName: "marker-chameleon", label: "카멜레온")
+        .padding()
 }
 
-#Preview("Creature Card") {
-    CreatureCard(creature: HomePreviewData.creature, isSelected: true)
-        .padding(CatureSpacing.lg)
+#Preview("Card") {
+    CreatureCard(isSelected: true, distanceText: "120m")
+        .padding()
 }
 
-#Preview("Filter Chip") {
-    HStack {
+#Preview("Categories") {
+    HStack(spacing: 5) {
         CircleButton(systemName: "plus")
-        FilterChip(title: "Nearby", systemName: "mappin.and.ellipse", count: nil, isSelected: true)
-        FilterChip(title: "Home", systemName: nil, count: 3, isSelected: false)
+        CategoryChip(title: "Nearby", systemName: "mappin.and.ellipse", count: nil, isSelected: true)
+        CategoryChip(title: "Home", systemName: nil, count: 3, isSelected: false)
     }
-    .padding(CatureSpacing.lg)
+    .padding()
 }
 
-#Preview("Bottom Tab") {
+#Preview("Bottom Navigation") {
     HStack {
         BottomTab(systemName: "house.fill", title: "Home", isSelected: true)
         BottomTab(systemName: "checklist", title: nil, isSelected: false)
         BottomTab(systemName: "person.fill", title: nil, isSelected: false)
+        CameraButton()
     }
-    .padding(CatureSpacing.lg)
+    .padding()
 }
