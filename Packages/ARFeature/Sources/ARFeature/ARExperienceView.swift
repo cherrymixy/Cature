@@ -48,6 +48,7 @@ struct ARExperienceView: UIViewRepresentable {
         arView.addSubview(coaching)
 
         let tap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleTap(_:)))
+        tap.delegate = context.coordinator
         arView.addGestureRecognizer(tap)
 
         Task { @MainActor in status = .findingPlane }
@@ -57,7 +58,7 @@ struct ARExperienceView: UIViewRepresentable {
     func updateUIView(_ uiView: ARView, context: Context) {}
 
     @MainActor
-    final class Coordinator: NSObject, ARCoachingOverlayViewDelegate, ARSessionDelegate {
+    final class Coordinator: NSObject, ARCoachingOverlayViewDelegate, ARSessionDelegate, UIGestureRecognizerDelegate {
         weak var arView: ARView?
         let usdzAsset: String
         @Binding var status: ARPlacementStatus
@@ -68,6 +69,12 @@ struct ARExperienceView: UIViewRepresentable {
             self.usdzAsset = usdzAsset
             self._status = status
             self._lowLight = lowLight
+        }
+
+        // 오버레이(뒤로/종 선택 등) 위 탭은 배치 제스처가 가로채지 않게 → 버튼이 받도록.
+        nonisolated func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
+            guard let gestureView = gestureRecognizer.view else { return true }
+            return touch.view?.isDescendant(of: gestureView) ?? false
         }
 
         nonisolated func coachingOverlayViewDidDeactivate(_ overlayView: ARCoachingOverlayView) {
