@@ -33,7 +33,7 @@
 7. **Mock-first.** 안 만들어진 의존은 Core의 `Mock*`로.
 
 ## 아키텍처 불변식
-- **CorePackage 의존 0.** 나머지 패키지는 CorePackage에만 의존(S0 기준). Feature는 `Data`가 아니라 **Core 프로토콜**에 의존 → 주입으로 mock↔실구현 교체.
+- **CorePackage 의존 0** (그리고 `DesignTokens`도 의존 0 — 순수 디자인 레이어). `Data`·`Services`·Feature는 **CorePackage에만** 의존. Feature는 `Data`가 아니라 **Core 프로토콜**에 의존 → 주입으로 mock↔실구현 교체.
 - 로직은 패키지에, **앱 타깃은 얇게**(셸·라우팅). Feature는 루트뷰만 노출, 셸이 꽂는다.
 - SPM 로컬 패키지로 `project.pbxproj` 충돌 최소화(파일 추가는 패키지 폴더 안에서 → 프로젝트 파일 안 건드림).
 - 3D 에셋은 `Assets3D/` 한 곳, **Git LFS**.

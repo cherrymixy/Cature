@@ -28,7 +28,7 @@ SwiftUI + ARKit/RealityKit(usdz), 저장 로컬, 타깃 **iPhone 14 Pro(iOS 17+)
 - `AGENTS.md`는 32KB에서 잘림 → 길면 패키지별로 쪼갠다.
 
 ## 아키텍처
-- **`CorePackage` 의존 0**, 모두 여기만 import. Feature는 Core **프로토콜**에 의존(주입으로 mock↔실구현 교체). `Data`/`Services` 직접 의존 금지.
+- **`CorePackage` 의존 0**, Feature·Data·Services는 여기만 import(`DesignTokens`는 순수 디자인 레이어로 의존 0). Feature는 Core **프로토콜**에 의존(주입으로 mock↔실구현 교체). `Data`/`Services` 직접 의존 금지.
 - 앱 타깃은 얇게(셸·라우팅). Feature는 **루트뷰만 노출**, 셸이 한 줄로 꽂는다.
 - 계약 요약: `docs/contracts.md`(S1 생성 예정). 토큰 사용법: `docs/tokens.md`(S2 생성 예정).
 
