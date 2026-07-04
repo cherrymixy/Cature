@@ -20,8 +20,10 @@ build/
 .build/
 .swiftpm/
 
-# ===== Secrets — 비커밋 (API 키 등, PRD §5) =====
+# ===== Secrets · 개인 서명 — 비커밋 =====
 Secrets.xcconfig
 *.secret.xcconfig
 Config/Secrets*.plist
+# 개인 DEVELOPMENT_TEAM (각자 자기 팀)
+Config/Signing.xcconfig
 .env
