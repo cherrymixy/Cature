@@ -1,0 +1,27 @@
+# ===== macOS =====
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# ===== Xcode: 사용자별 상태 & 빌드 산출물 =====
+xcuserdata/
+*.xcuserstate
+*.xcscmblueprint
+*.xccheckout
+DerivedData/
+build/
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM
+*.dSYM.zip
+
+# ===== Swift Package Manager =====
+.build/
+.swiftpm/
+
+# ===== Secrets — 비커밋 (API 키 등, PRD §5) =====
+Secrets.xcconfig
+*.secret.xcconfig
+Config/Secrets*.plist
+.env

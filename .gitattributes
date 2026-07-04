@@ -1,0 +1,13 @@
+# ===== Git LFS: 공용 3D 에셋 (Assets3D/) =====
+# Assets3D/ 아래 바이너리는 LFS로 추적.
+Assets3D/** filter=lfs diff=lfs merge=lfs -text
+
+# 3D 포맷은 위치와 무관하게 LFS.
+*.usdz     filter=lfs diff=lfs merge=lfs -text
+*.usdc     filter=lfs diff=lfs merge=lfs -text
+*.usda     filter=lfs diff=lfs merge=lfs -text
+*.reality  filter=lfs diff=lfs merge=lfs -text
+
+# 플레이스홀더/문서는 일반 텍스트로 (LFS 제외).
+Assets3D/.gitkeep   -filter -diff -merge text
+Assets3D/README.md  -filter -diff -merge text
