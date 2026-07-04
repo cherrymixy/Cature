@@ -27,10 +27,8 @@ public struct RootView: View {
     }
 
     public var body: some View {
-        DexIntegrationView(viewModel: viewModel)
-            .task {
-                await viewModel.load()
-            }
+        // 도감(마이페이지) — Figma/HTML 목업 (승아). 실데이터 연결은 찬희 DexIntegration 로직과 조율.
+        MyCollectionView()
     }
 }
 
