@@ -81,7 +81,9 @@ struct RootView: View {
             DexFeature.RootView(
                 collectionRepository: AppEnvironment.collection,
                 speciesRepository: AppEnvironment.species,
-                profileRepository: AppEnvironment.profile
+                profileRepository: AppEnvironment.profile,
+                sightingRepository: AppEnvironment.sightings,   // 종 상세 발견 지역
+                llmService: AppEnvironment.llm                  // 종 상세 공존 카드
             )
         }
     }

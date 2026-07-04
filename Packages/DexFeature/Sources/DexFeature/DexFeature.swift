@@ -11,13 +11,17 @@ public struct RootView: View {
     public init(
         collectionRepository: any CollectionRepository = MockCollectionRepository(),
         speciesRepository: any SpeciesRepository = MockSpeciesRepository(),
-        profileRepository: any ProfileRepository = MockProfileRepository()
+        profileRepository: any ProfileRepository = MockProfileRepository(),
+        sightingRepository: any SightingRepository = MockSightingRepository(),
+        llmService: any LLMService = MockLLMService()
     ) {
         _viewModel = StateObject(
             wrappedValue: DexIntegrationViewModel(
                 collectionRepository: collectionRepository,
                 speciesRepository: speciesRepository,
-                profileRepository: profileRepository
+                profileRepository: profileRepository,
+                sightingRepository: sightingRepository,
+                llmService: llmService
             )
         )
     }
@@ -64,24 +68,33 @@ struct DexIntegrationView: View {
                         )
                     } else {
                         ForEach(viewModel.speciesRows) { row in
-                            HStack(spacing: 12) {
-                                Text(row.discovered ? "✓" : "○")
-                                    .font(.headline)
-                                    .accessibilityHidden(true)
+                            NavigationLink {
+                                DexSpeciesDetailView(
+                                    species: row.species,
+                                    entry: row.entry,
+                                    sightingRepository: viewModel.sightingRepository,
+                                    llmService: viewModel.llmService
+                                )
+                            } label: {
+                                HStack(spacing: 12) {
+                                    Text(row.discovered ? "✓" : "○")
+                                        .font(.headline)
+                                        .accessibilityHidden(true)
 
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(row.name)
-                                        .font(.body)
-                                        .lineLimit(2)
-                                        .minimumScaleFactor(0.8)
-                                    Text(row.detail)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(row.name)
+                                            .font(.body)
+                                            .lineLimit(2)
+                                            .minimumScaleFactor(0.8)
+                                        Text(row.detail)
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
+
+                                    Spacer()
                                 }
-
-                                Spacer()
+                                .accessibilityLabel(row.accessibilityLabel)
                             }
-                            .accessibilityLabel(row.accessibilityLabel)
                         }
                     }
                 }
@@ -118,15 +131,22 @@ final class DexIntegrationViewModel: ObservableObject {
     private let collectionRepository: any CollectionRepository
     private let speciesRepository: any SpeciesRepository
     private let profileRepository: any ProfileRepository
+    // 종 상세로 그대로 넘겨줄 의존성 (공존 카드·발견 위치).
+    let sightingRepository: any SightingRepository
+    let llmService: any LLMService
 
     init(
         collectionRepository: any CollectionRepository,
         speciesRepository: any SpeciesRepository,
-        profileRepository: any ProfileRepository
+        profileRepository: any ProfileRepository,
+        sightingRepository: any SightingRepository,
+        llmService: any LLMService
     ) {
         self.collectionRepository = collectionRepository
         self.speciesRepository = speciesRepository
         self.profileRepository = profileRepository
+        self.sightingRepository = sightingRepository
+        self.llmService = llmService
     }
 
     func load() async {
@@ -161,11 +181,16 @@ struct DexSpeciesRow: Identifiable, Equatable {
     let name: String
     let detail: String
     let discovered: Bool
+    // 상세 화면 구성에 그대로 넘김.
+    let species: Species
+    let entry: CollectionEntry?
 
     init(species: Species, entry: CollectionEntry?) {
         id = species.id
         name = species.nameKo
         discovered = entry?.discovered == true
+        self.species = species
+        self.entry = entry
 
         let captureCount = entry?.captureCount ?? 0
         let experienceText = species.canExperience ? "AR 가능" : "AR 준비중"
