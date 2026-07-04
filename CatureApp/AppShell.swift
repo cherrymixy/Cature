@@ -10,6 +10,7 @@
 import SwiftUI
 import DesignTokens
 import DiscoveryFeature
+import ARFeature
 
 enum AppTab: Hashable {
     case home, feature, my
@@ -18,6 +19,8 @@ enum AppTab: Hashable {
 struct RootView: View {
     @State private var selectedTab: AppTab = .home
     @State private var showCamera = false
+    @State private var showExperience = false
+    @State private var pendingExperience = false
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -26,11 +29,20 @@ struct RootView: View {
 
             bottomBar
         }
-        .fullScreenCover(isPresented: $showCamera) {
+        .fullScreenCover(isPresented: $showCamera, onDismiss: {
+            // 카메라 커버가 닫힌 뒤 체험(AR)으로 순차 전환.
+            if pendingExperience { pendingExperience = false; showExperience = true }
+        }) {
             DiscoveryFeature.RootView(
                 dependencies: .mock,       // S9에서 실구현(Data·Services) 주입으로 교체
-                onEnterExperience: {},     // S8 ARFeature 진입점
+                onEnterExperience: { pendingExperience = true; showCamera = false },
                 onClose: { showCamera = false }
+            )
+        }
+        .fullScreenCover(isPresented: $showExperience) {
+            ARFeature.RootView(
+                dependencies: .mock,       // S9에서 실 CollectionRepository 주입
+                onClose: { showExperience = false }
             )
         }
     }

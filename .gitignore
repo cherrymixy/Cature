@@ -3,6 +3,9 @@
 .AppleDouble
 .LSOverride
 
+# 백업 파일
+*.bak
+
 # ===== Xcode: 사용자별 상태 & 빌드 산출물 =====
 xcuserdata/
 *.xcuserstate
