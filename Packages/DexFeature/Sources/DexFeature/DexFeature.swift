@@ -27,8 +27,8 @@ public struct RootView: View {
     }
 }
 
-struct RootView_Previews: PreviewProvider {
-    static var previews: some View {
-        RootView()
-    }
+#if !CLI_BUILD
+#Preview {
+    RootView()
 }
+#endif
