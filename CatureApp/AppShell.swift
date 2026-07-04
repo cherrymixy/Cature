@@ -177,13 +177,10 @@ struct RootView: View {
     private func dialAction(label: String, icon: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(spacing: CatureSpacing.sm) {
-                Text(label)
+                Text(label)                       // 배경 없이 텍스트만
                     .font(CatureFont.headline)
                     .foregroundStyle(CatureColor.textPrimary)
-                    .padding(.horizontal, CatureSpacing.sm)
-                    .padding(.vertical, 6)
-                    .background(CatureColor.surface, in: Capsule())
-                    .shadow(color: .black.opacity(0.12), radius: 6, y: 2)
+                    .shadow(color: .black.opacity(0.18), radius: 3, y: 1)
                 Image(systemName: icon)
                     .font(.system(size: 20, weight: .semibold))
                     .foregroundStyle(CatureColor.accent)
