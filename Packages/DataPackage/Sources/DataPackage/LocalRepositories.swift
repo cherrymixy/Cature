@@ -34,10 +34,18 @@ public actor LocalSightingRepository: SightingRepository {
     private let url: URL
     private var cache: [Sighting]
 
-    public init(fileURL: URL? = nil) {
+    /// `ensure`: 파일에 없는(id 기준) 발견을 추가 저장 → 데모 시드용(동기, 로드 즉시 반영).
+    public init(fileURL: URL? = nil, ensure: [Sighting] = []) {
         let url = fileURL ?? CodableFile.documentsFile("sightings.json")
         self.url = url
-        self.cache = CodableFile.load([Sighting].self, from: url) ?? []
+        var loaded = CodableFile.load([Sighting].self, from: url) ?? []
+        let existing = Set(loaded.map(\.id))
+        let missing = ensure.filter { !existing.contains($0.id) }
+        if !missing.isEmpty {
+            loaded.append(contentsOf: missing)
+            try? CodableFile.save(loaded, to: url)
+        }
+        self.cache = loaded
     }
 
     public func allSightings() -> [Sighting] { cache }
@@ -55,11 +63,19 @@ public actor LocalCollectionRepository: CollectionRepository {
     private let url: URL
     private var entries: [String: CollectionEntry]
 
-    public init(fileURL: URL? = nil) {
+    /// `ensure`: 없는(speciesId 기준) 수집 엔트리를 추가 → 데모 시드용(동기).
+    public init(fileURL: URL? = nil, ensure: [CollectionEntry] = []) {
         let url = fileURL ?? CodableFile.documentsFile("collection.json")
         self.url = url
         let loaded = CodableFile.load([CollectionEntry].self, from: url) ?? []
-        self.entries = Dictionary(uniqueKeysWithValues: loaded.map { ($0.speciesId, $0) })
+        var dict = Dictionary(uniqueKeysWithValues: loaded.map { ($0.speciesId, $0) })
+        var changed = false
+        for entry in ensure where dict[entry.speciesId] == nil {
+            dict[entry.speciesId] = entry
+            changed = true
+        }
+        self.entries = dict
+        if changed { try? CodableFile.save(Array(dict.values), to: url) }
     }
 
     public func allEntries() -> [CollectionEntry] { Array(entries.values) }

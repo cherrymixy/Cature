@@ -13,6 +13,8 @@ public enum SampleData {
         Species(id: "lizard",    nameKo: "도마뱀",    category: "파충류", usdzAsset: "lizard.usdz",    thumbnail: "lizard"),
         Species(id: "tree_frog", nameKo: "청개구리",  category: "양서류", usdzAsset: "tree_frog.usdz", thumbnail: "tree_frog"),
         Species(id: "ladybug",   nameKo: "무당벌레",  category: "곤충",   usdzAsset: nil,              thumbnail: "ladybug"),
+        Species(id: "chicken",   nameKo: "닭",        category: "조류",   usdzAsset: nil,              thumbnail: "chicken"),
+        Species(id: "tree",      nameKo: "느티나무",  category: "식물",   usdzAsset: nil,              thumbnail: "tree"),
     ]
 
     /// MockLLMService.identify 고정 후보 (플레이북 S1: 카멜레온 0.78 / 도마뱀 0.24 / 버섯 0.02).
@@ -48,6 +50,28 @@ public enum SampleData {
             needs: ["안전한 서식 공간", "먹이와 물"],
             disturbances: ["갑작스러운 접근", "서식지 훼손"],
             source: .llm
+        )
+    }
+
+    /// 홈 지도 데모용 발견 3건 (임의 위치: 서울 도심 · 고양이/닭/느티나무).
+    /// AppEnvironment가 저장소에 없으면 시드 → 홈에 핀 3 + 카드 3. 실제 발견 플로우는 그대로.
+    public static let demoSightings: [Sighting] = [
+        Sighting(id: "demo-cat",     speciesId: "cat",     photoPath: "",
+                 latitude: 37.5663, longitude: 126.9782, locationName: "서울시청",
+                 createdAt: Date(timeIntervalSince1970: 1_720_000_000)),
+        Sighting(id: "demo-chicken", speciesId: "chicken", photoPath: "",
+                 latitude: 37.5675, longitude: 126.9772, locationName: "광화문",
+                 createdAt: Date(timeIntervalSince1970: 1_720_003_600)),
+        Sighting(id: "demo-tree",    speciesId: "tree",    photoPath: "",
+                 latitude: 37.5651, longitude: 126.9764, locationName: "덕수궁",
+                 createdAt: Date(timeIntervalSince1970: 1_720_007_200)),
+    ]
+
+    /// demoSightings에 대응하는 수집 엔트리(발견=보유중 처리).
+    public static let demoEntries: [CollectionEntry] = demoSightings.map {
+        CollectionEntry(
+            speciesId: $0.speciesId, captureCount: 1, discovered: true,
+            firstSeenAt: $0.createdAt, lastSeenAt: $0.createdAt, isFavorite: false
         )
     }
 }

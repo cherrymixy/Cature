@@ -149,10 +149,10 @@ public struct RootView: View {
 
     @MainActor
     private func load() async {
+        // 발견/종/수집은 로컬 읽기 — 위치 없이 먼저 핀·카드를 그린다(위치 권한 대기에 막히지 않게).
         async let sightingsResult = sightingRepository.allSightings()
         async let speciesResult = speciesRepository.allSpecies()
         async let entriesResult = collectionRepository.allEntries()
-        let currentLocation = await locationService.currentLocation()
 
         let sightings = (try? await sightingsResult) ?? []
         let species = (try? await speciesResult) ?? []
@@ -162,36 +162,22 @@ public struct RootView: View {
         let discoveredIds = Set(entries.filter(\.discovered).map(\.speciesId))
         discoveredCount = discoveredIds.count
 
-        let userLocation = currentLocation.map { CLLocation(latitude: $0.latitude, longitude: $0.longitude) }
-
         var builtMarkers: [CreatureMapMarker] = []
         var builtCards: [CreatureCardItem] = []
-
         for sighting in sightings.sorted(by: { $0.createdAt > $1.createdAt }) {
             guard let latitude = sighting.latitude, let longitude = sighting.longitude else { continue }
             let coordinate = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
-            let species = speciesById[sighting.speciesId]
-            let korean = species?.nameKo ?? sighting.speciesId
-
+            let korean = speciesById[sighting.speciesId]?.nameKo ?? sighting.speciesId
             builtMarkers.append(
                 CreatureMapMarker(id: sighting.id, name: korean, speciesId: sighting.speciesId, coordinate: coordinate)
             )
-
-            let distanceText: String
-            if let userLocation {
-                let meters = Int(userLocation.distance(from: CLLocation(latitude: latitude, longitude: longitude)).rounded())
-                distanceText = meters > 0 ? Self.formatDistance(meters) : "바로 근처"
-            } else {
-                distanceText = sighting.locationName ?? "위치 미확인"
-            }
-
             builtCards.append(
                 CreatureCardItem(
                     id: sighting.id,
                     speciesId: sighting.speciesId,
                     english: Self.englishName(sighting.speciesId),
                     korean: korean,
-                    distanceText: distanceText,
+                    distanceText: sighting.locationName ?? "근처",
                     discovered: discoveredIds.contains(sighting.speciesId)
                 )
             )
@@ -200,13 +186,31 @@ public struct RootView: View {
         markers = builtMarkers
         cards = builtCards
         selectedCardID = builtCards.first?.id
+        if !builtMarkers.isEmpty {
+            // 핀들의 무게중심에 맞춰 3개가 화면 중앙에 모이게(상단 타이틀/하단 카드 안 가리게).
+            let lat = builtMarkers.map(\.coordinate.latitude).reduce(0, +) / Double(builtMarkers.count)
+            let lon = builtMarkers.map(\.coordinate.longitude).reduce(0, +) / Double(builtMarkers.count)
+            withAnimation {
+                cameraPosition = .region(
+                    MKCoordinateRegion(
+                        center: CLLocationCoordinate2D(latitude: lat, longitude: lon),
+                        span: MKCoordinateSpan(latitudeDelta: 0.011, longitudeDelta: 0.011)
+                    )
+                )
+            }
+        }
 
-        let center = currentLocation.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }
-            ?? builtMarkers.first?.coordinate
-            ?? Self.defaultCenter
-        withAnimation {
-            cameraPosition = .region(
-                MKCoordinateRegion(center: center, span: MKCoordinateSpan(latitudeDelta: 0.012, longitudeDelta: 0.012))
+        // 위치는 이후에(권한 대기 가능) — 카드 거리만 실측으로 갱신. 지도 중심은 핀 유지.
+        guard let sample = await locationService.currentLocation() else { return }
+        let user = CLLocation(latitude: sample.latitude, longitude: sample.longitude)
+        let coordByID = Dictionary(uniqueKeysWithValues: builtMarkers.map { ($0.id, $0.coordinate) })
+        cards = builtCards.map { card in
+            guard let coord = coordByID[card.id] else { return card }
+            let meters = Int(user.distance(from: CLLocation(latitude: coord.latitude, longitude: coord.longitude)).rounded())
+            return CreatureCardItem(
+                id: card.id, speciesId: card.speciesId, english: card.english, korean: card.korean,
+                distanceText: meters > 0 ? Self.formatDistance(meters) : "바로 근처",
+                discovered: card.discovered
             )
         }
     }
@@ -273,6 +277,23 @@ enum HomeAssets {
     #endif
 }
 
+/// SPM 리소스의 loose PNG는 SwiftUI `Image(name:bundle:)`로 렌더가 안 될 때가 있어 UIImage 경유로 로드.
+struct BundledImage: View {
+    let name: String
+
+    var body: some View {
+        #if canImport(UIKit)
+        if let ui = UIImage(named: name, in: .module, with: nil) {
+            Image(uiImage: ui).resizable()
+        } else {
+            Color.clear
+        }
+        #else
+        Image(name, bundle: .module).resizable()
+        #endif
+    }
+}
+
 // MARK: - 지도 마커 (Figma: 이미지 마커 + 라벨 칩)
 
 struct CreatureMarkerView: View {
@@ -285,7 +306,7 @@ struct CreatureMarkerView: View {
                 Circle()
                     .fill(CatureColor.surface)
                     .frame(width: 54, height: 54)
-                    .shadow(color: .black.opacity(0.28), radius: 4, y: 1)
+                    .shadow(color: .black.opacity(0.25), radius: 4, y: 1)
                 creatureImage
                 Circle()
                     .stroke(CatureColor.lime, lineWidth: 3)
@@ -315,16 +336,15 @@ struct CreatureMarkerView: View {
     @ViewBuilder
     private var creatureImage: some View {
         if let asset = HomeAssets.creatureImageName(speciesId) {
-            Image(asset, bundle: .module)
-                .resizable()
+            BundledImage(name: asset)
                 .scaledToFill()
-                .frame(width: 46, height: 46)
+                .frame(width: 50, height: 50)
                 .clipShape(Circle())
         } else {
             Text(String(name.prefix(1)))
                 .font(.system(size: 22, weight: .bold))
                 .foregroundStyle(CatureColor.textPrimary)
-                .frame(width: 46, height: 46)
+                .frame(width: 50, height: 50)
         }
     }
 }
@@ -434,8 +454,7 @@ struct AnimalCard: View {
             Spacer(minLength: 0)
 
             if let asset = HomeAssets.cardImageName(item.speciesId) {
-                Image(asset, bundle: .module)
-                    .resizable()
+                BundledImage(name: asset)
                     .scaledToFill()
                     .frame(width: 101, height: 104)
                     .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
@@ -457,18 +476,15 @@ struct AnimalCard: View {
 private enum HomePreviewData {
     static let now = Date(timeIntervalSince1970: 1_720_000_000)
 
+    // 앱 데모와 동일한 3종(고양이/닭/느티나무)
     static var collectionRepository: MockCollectionRepository {
-        MockCollectionRepository(entries: [
-            CollectionEntry(speciesId: "chameleon", captureCount: 2, discovered: true, firstSeenAt: now, lastSeenAt: now, isFavorite: true),
-            CollectionEntry(speciesId: "tree_frog", captureCount: 1, discovered: true, firstSeenAt: now, lastSeenAt: now, isFavorite: false),
-        ])
+        MockCollectionRepository(entries: SampleData.demoSightings.map {
+            CollectionEntry(speciesId: $0.speciesId, captureCount: 1, discovered: true, firstSeenAt: now, lastSeenAt: now, isFavorite: false)
+        })
     }
 
     static var sightingRepository: MockSightingRepository {
-        MockSightingRepository(sightings: [
-            Sighting(id: "s-chameleon", speciesId: "chameleon", photoPath: "", latitude: 37.5662, longitude: 126.9784, locationName: "서울시청 근처", createdAt: now),
-            Sighting(id: "s-frog", speciesId: "tree_frog", photoPath: "", latitude: 37.5679, longitude: 126.9769, locationName: "청계천", createdAt: now.addingTimeInterval(-3600)),
-        ])
+        MockSightingRepository(sightings: SampleData.demoSightings)
     }
 }
 
