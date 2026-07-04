@@ -10,6 +10,8 @@
 import SwiftUI
 import DesignTokens
 import HomeFeature
+import MinigameFeature
+import DexFeature
 import DiscoveryFeature
 import ARFeature
 
@@ -70,8 +72,17 @@ struct RootView: View {
                 speciesRepository: AppEnvironment.species,
                 locationService: AppEnvironment.location
             )
-        case .feature: FeatureTabPlaceholder()
-        case .my:      MyTabPlaceholder()
+        case .feature:
+            MinigameFeature.RootView(
+                collectionRepository: AppEnvironment.collection,
+                speciesRepository: AppEnvironment.species
+            )
+        case .my:
+            DexFeature.RootView(
+                collectionRepository: AppEnvironment.collection,
+                speciesRepository: AppEnvironment.species,
+                profileRepository: AppEnvironment.profile
+            )
         }
     }
 
