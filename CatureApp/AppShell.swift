@@ -90,13 +90,13 @@ struct RootView: View {
     private var bottomBar: some View {
         HStack(alignment: .bottom, spacing: 12) {
             if !fabExpanded {
-                HStack(spacing: 14) {
+                HStack(spacing: 12) {
                     tabButton(.home,    title: "Home", icon: "house.fill")
                     tabButton(.feature, title: "Task", icon: "list.bullet.rectangle.fill")
                     tabButton(.my,      title: "My",   icon: "person.fill")
-                    Spacer(minLength: 0)
                 }
-                .frame(maxWidth: .infinity)
+                .padding(.leading, 6)
+                .padding(.trailing, 14)
                 .frame(height: 58)
                 .background {
                     Capsule()
@@ -106,10 +106,10 @@ struct RootView: View {
                 .clipShape(Capsule())
                 .overlay(Capsule().stroke(Color.white.opacity(0.2), lineWidth: 1))
                 .shadow(color: .black.opacity(0.08), radius: 10, y: 2)
-                .transition(.opacity)
-            } else {
-                Spacer(minLength: 0)
+                .transition(.move(edge: .leading).combined(with: .opacity))
             }
+
+            Spacer(minLength: 0)
 
             // 스피드다이얼: 액션(확장 시) + FAB
             VStack(alignment: .trailing, spacing: CatureSpacing.md) {
@@ -146,10 +146,11 @@ struct RootView: View {
                 Image(systemName: icon).font(.system(size: 21, weight: isSelected ? .semibold : .regular))
                 if isSelected {
                     Text(title).font(.system(size: 16, weight: .medium))
+                        .lineLimit(1).fixedSize()
                 }
             }
             .foregroundStyle(isSelected ? .black : .black.opacity(0.45))
-            .padding(.horizontal, isSelected ? 26 : 13)
+            .padding(.horizontal, isSelected ? 24 : 10)
             .frame(height: 58)
             .background {
                 if isSelected {
