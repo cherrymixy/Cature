@@ -90,13 +90,13 @@ struct RootView: View {
     private var bottomBar: some View {
         HStack(alignment: .bottom, spacing: 12) {
             if !fabExpanded {
-                HStack(spacing: 12) {
+                HStack(spacing: 18) {
                     tabButton(.home,    title: "Home", icon: "house.fill")
-                    tabButton(.feature, title: "Task", icon: "list.bullet.rectangle.fill")
+                    tabButton(.feature, title: "Game", icon: "list.bullet.rectangle.fill")
                     tabButton(.my,      title: "My",   icon: "person.fill")
                 }
+                .frame(maxWidth: .infinity, alignment: tabAlignment)   // 고정폭 컨테이너, 선택 탭 쪽 정렬(반대쪽에 여백)
                 .frame(height: 58)
-                .fixedSize(horizontal: true, vertical: false)   // 콘텐츠 폭에 고정 → 좌우 빈 여백 제거(선택 알약이 끝에 붙음)
                 .background {
                     Capsule()
                         .fill(.ultraThinMaterial)
@@ -105,10 +105,11 @@ struct RootView: View {
                 .clipShape(Capsule())
                 .overlay(Capsule().stroke(Color.white.opacity(0.2), lineWidth: 1))
                 .shadow(color: .black.opacity(0.08), radius: 10, y: 2)
+                .animation(.spring(response: 0.35, dampingFraction: 0.82), value: selectedTab)
                 .transition(.move(edge: .leading).combined(with: .opacity))
+            } else {
+                Spacer(minLength: 0)
             }
-
-            Spacer(minLength: 0)
 
             // 스피드다이얼: 액션(확장 시) + FAB
             VStack(alignment: .trailing, spacing: CatureSpacing.md) {
@@ -127,6 +128,15 @@ struct RootView: View {
         }
         .padding(.horizontal, CatureSpacing.md)
         .padding(.bottom, CatureSpacing.xs)
+    }
+
+    // 선택 탭 쪽으로 정렬 (Figma: Home=좌 플러시, Game=중앙, My=우 플러시)
+    private var tabAlignment: Alignment {
+        switch selectedTab {
+        case .home:    return .leading
+        case .feature: return .center
+        case .my:      return .trailing
+        }
     }
 
     // Figma 133-483 회색 프로스트 그라디언트
