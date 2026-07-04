@@ -21,8 +21,8 @@
 | 사람 | 도구 | 소유 모듈 |
 |---|---|---|
 | **승아** | Claude Code | 스캐폴드 · `CorePackage` · `DataPackage` · `ServicesPackage`(LLM·위치·캡처) · `DesignTokens` · `App`(셸) · **발견 플로우** · **AR 체험** |
-| **찬희** | Codex | `DexFeature`(도감/마이) · `HomeFeature`(지도) |
-| **예준** | Codex | `MinigameFeature`(카드 뒤집기→가위바위보) · `OnboardingFeature`(온보딩·Auth) |
+| **찬희** | Codex | `DexFeature`(도감/마이) · `MinigameFeature`(카드 뒤집기→가위바위보) |
+| **예준** | Codex | `HomeFeature`(지도) · `OnboardingFeature`(온보딩·Auth) |
 
 ```
 Cature/
@@ -37,8 +37,8 @@ Cature/
 │  ├─ DiscoveryFeature/    # 승아: 카메라·분석·공존카드·수집연출
 │  ├─ ARFeature/           # 승아: RealityKit usdz 배치·체험
 │  ├─ DexFeature/          # 찬희: 도감 + AGENTS.md(펜스)
-│  ├─ HomeFeature/         # 찬희: 홈 지도 + AGENTS.md
-│  ├─ MinigameFeature/     # 예준: 미니게임 + AGENTS.md
+│  ├─ HomeFeature/         # 예준: 홈 지도 + AGENTS.md
+│  ├─ MinigameFeature/     # 찬희: 미니게임 + AGENTS.md
 │  └─ OnboardingFeature/   # 예준: 온보딩·Auth + AGENTS.md
 ├─ Assets3D/               # 공용 usdz (Git LFS)
 └─ App/                    # 승아: 셸·탭·네비(기능 루트뷰 조립)
@@ -105,13 +105,13 @@ struct CollectionEntry: Codable {    // 종별 수집 상태
 | 화면 | 오너 | 소비 계약 |
 |---|---|---|
 | 온보딩 / Auth | 예준 | `ProfileRepository` |
-| 홈(지도) | 찬희 | `CollectionRepository`·`SightingRepository`·`LocationService` (+ MapKit) |
+| 홈(지도) | 예준 | `CollectionRepository`·`SightingRepository`·`LocationService` (+ MapKit) |
 | 카메라(발견/체험 토글) | 승아 | `CaptureService` (체험은 ARFeature로 라우팅) |
 | 분석(후보·정확도) | 승아 | `LLMService` |
 | 공존 카드 | 승아 | `LLMService`·`SpeciesRepository` |
 | 수집 연출 | 승아 | `SightingRepository`·`CollectionRepository` |
 | 마이(도감·달성률·종 상세) | 찬희 | `CollectionRepository`·`SpeciesRepository` |
-| 미니게임(카드 뒤집기→가위바위보) | 예준 | `CollectionRepository`(수집 종·usdz·썸네일 읽기) |
+| 미니게임(카드 뒤집기→가위바위보) | 찬희 | `CollectionRepository`(수집 종·usdz·썸네일 읽기) |
 | 체험(AR) | 승아 | `CollectionRepository` + usdz |
 | 앱 셸·탭·카메라 FAB | 승아 | (조립) |
 
@@ -158,4 +158,4 @@ struct CollectionEntry: Codable {    // 종별 수집 상태
 ---
 
 ## 한 줄 요약
-**Cature = 발견(카메라+LLM) → 공존 카드 → 로컬 수집(도감·지도) → AR 체험. Core는 승아가 SPM으로 얼리고, 찬희(도감·홈)·예준(미니게임·온보딩)은 Codex로 자기 패키지에서 병렬. 저장은 로컬, 미니게임은 수집 종 재사용.**
+**Cature = 발견(카메라+LLM) → 공존 카드 → 로컬 수집(도감·지도) → AR 체험. Core는 승아가 SPM으로 얼리고, 찬희(도감·미니게임)·예준(홈·온보딩)은 Codex로 자기 패키지에서 병렬. 저장은 로컬, 미니게임은 수집 종 재사용.**

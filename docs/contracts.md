@@ -22,11 +22,11 @@
 | 프로토콜 | 메서드 | 소비 화면(오너) |
 |---|---|---|
 | `SpeciesRepository` | `allSpecies()` · `species(id:)` | 도감·상세(찬희), 발견(승아) |
-| `SightingRepository` | `allSightings()` · `sightings(speciesId:)` · `save(_:)` | 홈 지도(찬희), 발견(승아) |
-| `CollectionRepository` | `allEntries()` · `entry(speciesId:)` · `recordCapture(speciesId:at:)` · `setFavorite(speciesId:_:)` | 도감·달성률(찬희), 미니게임(예준), 수집연출(승아) |
+| `SightingRepository` | `allSightings()` · `sightings(speciesId:)` · `save(_:)` | 홈 지도(예준), 발견(승아) |
+| `CollectionRepository` | `allEntries()` · `entry(speciesId:)` · `recordCapture(speciesId:at:)` · `setFavorite(speciesId:_:)` | 도감·달성률(찬희), 미니게임(찬희), 수집연출(승아) |
 | `ProfileRepository` | `load()` · `save(_:)` | 온보딩·Auth(예준) |
 | `LLMService` | `identify(image:)` · `coexistCard(speciesId:)` | 분석·공존카드(승아) |
-| `LocationService` | `currentLocation()` | 홈(찬희), 발견(승아) |
+| `LocationService` | `currentLocation()` | 홈(예준), 발견(승아) |
 | `CaptureService` | `capturePhoto()` | 카메라(승아) |
 
 > 저장소/서비스 메서드는 **모두 `async`**(위치는 `async`, 나머지 `async throws`). 프로토콜은 `Sendable` → Task/actor 경계로 안전히 주입.

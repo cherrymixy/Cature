@@ -12,8 +12,8 @@ SwiftUI + ARKit/RealityKit(usdz), 저장 로컬, 타깃 **iPhone 14 Pro(iOS 17+)
 | 오너 | 도구 | 소유 패키지 |
 |---|---|---|
 | **승아** | Claude Code | Core · Data · Services · DesignTokens · DiscoveryFeature · ARFeature · CatureApp(셸) |
-| **찬희** | Codex | DexFeature · HomeFeature |
-| **예준** | Codex | MinigameFeature · OnboardingFeature |
+| **찬희** | Codex | DexFeature · MinigameFeature |
+| **예준** | Codex | HomeFeature · OnboardingFeature |
 
 ## 절대 규칙
 1. **자기 패키지 밖 금지.** 다른 Feature·`CorePackage`·`DataPackage`·`ServicesPackage`·`CatureApp` 수정 금지. (프롬프트에도 매번 "내 패키지 밖 금지" 한 줄.)
@@ -23,7 +23,7 @@ SwiftUI + ARKit/RealityKit(usdz), 저장 로컬, 타깃 **iPhone 14 Pro(iOS 17+)
 
 ## 패키지 펜스 (찬희·예준, 각자 S0)
 - 각자 자기 Feature 폴더에 `AGENTS.md`를 만들어 박는다: *"이 패키지 안에서만 작업. 다른 Feature·Core 수정 금지. 토큰 참조. mock으로 컴파일 확인."*
-  - 예: `Packages/DexFeature/AGENTS.md`(찬희), `Packages/MinigameFeature/AGENTS.md`(예준).
+  - 예: `Packages/DexFeature/AGENTS.md`(찬희), `Packages/HomeFeature/AGENTS.md`(예준).
 - Codex를 **해당 패키지 디렉터리에서 실행**하면 그 폴더 규칙이 최우선.
 - `AGENTS.md`는 32KB에서 잘림 → 길면 패키지별로 쪼갠다.
 
