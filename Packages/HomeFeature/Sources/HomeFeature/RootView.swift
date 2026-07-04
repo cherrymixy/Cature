@@ -70,6 +70,19 @@ public struct RootView: View {
                 .ignoresSafeArea()
             }
 
+            // 상단 그라디언트 — 메인컬러(라임) 20% → 투명 (Figma top-glow)
+            VStack(spacing: 0) {
+                LinearGradient(
+                    colors: [CatureColor.lime.opacity(0.2), CatureColor.lime.opacity(0)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: 300)
+                Spacer(minLength: 0)
+            }
+            .ignoresSafeArea()
+            .allowsHitTesting(false)
+
             VStack(alignment: .leading, spacing: 0) {
                 titleBar
                 filterRail
