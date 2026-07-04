@@ -1,0 +1,4 @@
+// 복사해서 Config/Signing.xcconfig 로 저장(비커밋). 본인 Apple Team ID 입력.
+// Team ID 위치: Xcode → Settings → Accounts → 팀 선택, 또는 developer.apple.com → Membership.
+// (시뮬레이터만 쓸 거면 이 파일 없어도 됨 — Base.xcconfig 가 #include? 로 옵션 처리.)
+DEVELOPMENT_TEAM = YOUR_TEAM_ID

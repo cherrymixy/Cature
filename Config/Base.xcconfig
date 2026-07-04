@@ -1,0 +1,7 @@
+// Cature — 앱 타깃 베이스 빌드 설정 (커밋됨).
+//
+// 개인 서명 팀(DEVELOPMENT_TEAM)은 gitignored Config/Signing.xcconfig 에서 온다 — 각자 자기 팀.
+// Signing.xcconfig 가 없어도(#include?) 시뮬레이터 빌드는 문제없음.
+// (S6~) 카메라·위치·사진 권한 문구 등 공유 앱 빌드 설정을 여기에 추가한다.
+
+#include? "Signing.xcconfig"
