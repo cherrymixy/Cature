@@ -34,14 +34,14 @@ struct RootView: View {
             if pendingExperience { pendingExperience = false; showExperience = true }
         }) {
             DiscoveryFeature.RootView(
-                dependencies: .mock,       // S9에서 실구현(Data·Services) 주입으로 교체
+                dependencies: AppEnvironment.discovery,   // 실 카메라·OpenAI·로컬저장 (키 없으면 Mock 폴백)
                 onEnterExperience: { pendingExperience = true; showCamera = false },
                 onClose: { showCamera = false }
             )
         }
         .fullScreenCover(isPresented: $showExperience) {
             ARFeature.RootView(
-                dependencies: .mock,       // S9에서 실 CollectionRepository 주입
+                dependencies: AppEnvironment.ar,          // 실 CollectionRepository (발견과 공유)
                 onClose: { showExperience = false }
             )
         }
