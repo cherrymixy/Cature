@@ -101,7 +101,7 @@ struct RootView: View {
                     tabButton(.my,      title: "My",   icon: "My")
                     if selectedTab != .my { Spacer(minLength: 8) }
                 }
-                .frame(width: 282, height: 58)   // 고정폭: 선택 탭은 끝에 플러시, 나머지는 Spacer 분배
+                .frame(width: 262, height: 58)   // 고정폭: 선택 탭은 끝에 플러시, 나머지는 Spacer 분배
                 .background {
                     Capsule()
                         .fill(.ultraThinMaterial)
@@ -152,7 +152,7 @@ struct RootView: View {
                     .renderingMode(.template)
                     .resizable()
                     .scaledToFit()
-                    .frame(width: 38, height: 38)
+                    .frame(width: 30, height: 30)
                 if isSelected {
                     Text(title).font(.system(size: 16, weight: .medium))
                         .lineLimit(1).fixedSize()
