@@ -20,7 +20,7 @@ enum AppTab: Hashable {
 }
 
 struct RootView: View {
-    @State private var selectedTab: AppTab = .home
+    @State private var selectedTab: AppTab = .feature
     @State private var showCamera = false
     @State private var showExperience = false
     @State private var pendingExperience = false
@@ -92,13 +92,16 @@ struct RootView: View {
     private var bottomBar: some View {
         HStack(alignment: .bottom, spacing: 12) {
             if !fabExpanded {
-                HStack(spacing: 18) {
-                    tabButton(.home,    title: "Home", icon: "house.fill")
-                    tabButton(.feature, title: "Game", icon: "list.bullet.rectangle.fill")
-                    tabButton(.my,      title: "My",   icon: "person.fill")
+                HStack(spacing: 0) {
+                    if selectedTab != .home { Spacer(minLength: 8) }
+                    tabButton(.home,    title: "Home", icon: "Home")
+                    Spacer(minLength: 8)
+                    tabButton(.feature, title: "Game", icon: "Game")
+                    Spacer(minLength: 8)
+                    tabButton(.my,      title: "My",   icon: "My")
+                    if selectedTab != .my { Spacer(minLength: 8) }
                 }
-                .frame(maxWidth: .infinity, alignment: tabAlignment)   // 고정폭 컨테이너, 선택 탭 쪽 정렬(반대쪽에 여백)
-                .frame(height: 58)
+                .frame(width: 282, height: 58)   // 고정폭: 선택 탭은 끝에 플러시, 나머지는 Spacer 분배
                 .background {
                     Capsule()
                         .fill(.ultraThinMaterial)
@@ -109,9 +112,9 @@ struct RootView: View {
                 .shadow(color: .black.opacity(0.08), radius: 10, y: 2)
                 .animation(.spring(response: 0.35, dampingFraction: 0.82), value: selectedTab)
                 .transition(.move(edge: .leading).combined(with: .opacity))
-            } else {
-                Spacer(minLength: 0)
             }
+
+            Spacer(minLength: 0)
 
             // 스피드다이얼: 액션(확장 시) + FAB
             VStack(alignment: .trailing, spacing: CatureSpacing.md) {
@@ -132,15 +135,6 @@ struct RootView: View {
         .padding(.bottom, CatureSpacing.xs)
     }
 
-    // 선택 탭 쪽으로 정렬 (Figma: Home=좌 플러시, Game=중앙, My=우 플러시)
-    private var tabAlignment: Alignment {
-        switch selectedTab {
-        case .home:    return .leading
-        case .feature: return .center
-        case .my:      return .trailing
-        }
-    }
-
     // Figma 133-483 회색 프로스트 그라디언트
     private var tabBarFrost: LinearGradient {
         LinearGradient(
@@ -154,14 +148,18 @@ struct RootView: View {
         let isSelected = selectedTab == tab
         return Button { selectedTab = tab } label: {
             HStack(spacing: 9) {
-                Image(systemName: icon).font(.system(size: 21, weight: isSelected ? .semibold : .regular))
+                Image(icon)
+                    .renderingMode(.template)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 38, height: 38)
                 if isSelected {
                     Text(title).font(.system(size: 16, weight: .medium))
                         .lineLimit(1).fixedSize()
                 }
             }
             .foregroundStyle(isSelected ? .black : .black.opacity(0.45))
-            .padding(.horizontal, isSelected ? 24 : 10)
+            .padding(.horizontal, isSelected ? 20 : 7)
             .frame(height: 58)
             .background {
                 if isSelected {
