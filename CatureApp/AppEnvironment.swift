@@ -33,7 +33,7 @@ enum AppEnvironment {
     static var llm: any LLMService {
         openAIKey.isEmpty
             ? MockLLMService()
-            : OpenAILLMService.live(apiKey: openAIKey, curated: [SampleData.chameleonCard])
+            : OpenAILLMService.live(apiKey: openAIKey, curated: [SampleData.catCard, SampleData.chameleonCard])
     }
 
     // MARK: Feature 의존성
