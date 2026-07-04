@@ -6,6 +6,7 @@ import DesignTokens
 
 public struct RootView: View {
     @State private var vm: DiscoveryViewModel
+    @State private var didStart = false
     private let onEnterExperience: () -> Void
     private let onClose: (() -> Void)?
 
@@ -28,13 +29,20 @@ public struct RootView: View {
                 .padding(CatureSpacing.lg)
         }
         .preferredColorScheme(.dark)
+        .task {
+            // 발견 진입 → 커버 안정화 후 바로 카메라.
+            guard !didStart else { return }
+            didStart = true
+            try? await Task.sleep(for: .milliseconds(350))
+            if case .camera = vm.step { await vm.capture() }
+        }
     }
 
     @ViewBuilder
     private var content: some View {
         switch vm.step {
         case .camera:
-            CameraView(vm: vm, onEnterExperience: onEnterExperience, onClose: onClose)
+            CameraView(vm: vm, onClose: onClose)
         case .analyzing:
             AnalyzingView()
         case .candidates(let candidates):

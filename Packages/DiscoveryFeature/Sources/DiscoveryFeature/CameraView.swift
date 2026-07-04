@@ -1,12 +1,12 @@
 //  CameraView.swift
-//  DiscoveryFeature — 카메라 진입(발견/체험 토글 + 촬영). 체험은 ARFeature로 라우팅만.
+//  DiscoveryFeature — 촬영 화면(토글 없음). 진입 시 카메라가 바로 뜨고,
+//  취소/다시 찍기로 돌아오면 이 화면에서 촬영 버튼으로 재시도.
 
 import SwiftUI
 import DesignTokens
 
 struct CameraView: View {
-    @Bindable var vm: DiscoveryViewModel
-    let onEnterExperience: () -> Void
+    let vm: DiscoveryViewModel
     let onClose: (() -> Void)?
 
     var body: some View {
@@ -23,35 +23,24 @@ struct CameraView: View {
                 Spacer()
             }
 
-            Picker("mode", selection: $vm.mode) {
-                Text("발견").tag(DiscoveryMode.discover)
-                Text("체험").tag(DiscoveryMode.experience)
-            }
-            .pickerStyle(.segmented)
-
             Spacer()
-            Image(systemName: vm.mode == .discover ? "camera.viewfinder" : "cube.transparent")
+            Image(systemName: "camera.viewfinder")
                 .font(.system(size: 72, weight: .thin))
                 .foregroundStyle(CatureColor.darkTextSecondary)
-            Text(vm.mode == .discover ? "생물을 화면에 담아 보세요" : "수집한 종을 AR로 만나요")
+            Text("생물을 화면에 담아 보세요")
                 .font(CatureFont.body)
                 .foregroundStyle(CatureColor.darkTextSecondary)
             Spacer()
 
-            if vm.mode == .discover {
-                Button {
-                    Task { await vm.capture() }
-                } label: {
-                    Circle()
-                        .fill(.white)
-                        .frame(width: 74, height: 74)
-                        .overlay(Circle().stroke(CatureColor.darkSurface, lineWidth: 4).padding(4))
-                }
-                .accessibilityLabel("촬영")
-            } else {
-                Button("체험 시작") { onEnterExperience() }
-                    .buttonStyle(.caturePrimary)
+            Button {
+                Task { await vm.capture() }
+            } label: {
+                Circle()
+                    .fill(.white)
+                    .frame(width: 74, height: 74)
+                    .overlay(Circle().stroke(CatureColor.darkSurface, lineWidth: 4).padding(4))
             }
+            .accessibilityLabel("촬영")
         }
     }
 }
