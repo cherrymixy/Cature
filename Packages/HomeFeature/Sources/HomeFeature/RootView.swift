@@ -81,15 +81,13 @@ public struct RootView: View {
         .task { await load() }
     }
 
-    // MARK: 타이틀 (로고마크)
+    // MARK: 타이틀 (Cature 워드마크 로고 — Assets3D/Cature.svg)
 
     private var titleBar: some View {
-        Image("logo", bundle: .module)
-            .renderingMode(.template)
+        Image("cature-logo", bundle: .module)
             .resizable()
             .scaledToFit()
-            .frame(width: 34, height: 34)
-            .foregroundStyle(CatureColor.textPrimary.opacity(0.9))
+            .frame(height: 34)
             .padding(.leading, CatureSpacing.md)
             .padding(.top, CatureSpacing.xs)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -305,7 +303,7 @@ struct CreatureMarkerView: View {
                 Circle()
                     .fill(CatureColor.surface)
                     .frame(width: 54, height: 54)
-                    .shadow(color: .black.opacity(0.25), radius: 4, y: 1)
+                    .shadow(color: .black.opacity(0.1), radius: 2, y: 0.5)
                 creatureImage
                 Circle()
                     .stroke(CatureColor.lime, lineWidth: 3)
