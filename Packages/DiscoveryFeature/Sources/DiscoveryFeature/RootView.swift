@@ -1,17 +1,15 @@
 //  RootView.swift
-//  DiscoveryFeature — 발견 플로우 진입점(앱 셸의 카메라 FAB가 띄운다). 다크 컨텍스트.
+//  DiscoveryFeature — 발견 플로우 진입점. .camera = 라이브 카메라 화면(Figma), 그 외 = 다크 카드 화면.
 
 import SwiftUI
 import DesignTokens
 
 public struct RootView: View {
     @State private var vm: DiscoveryViewModel
-    @State private var didStart = false
+    @State private var controller = CameraController()
     private let onEnterExperience: () -> Void
     private let onClose: (() -> Void)?
 
-    /// - onEnterExperience: 체험(AR) 진입점 라우팅 (S8 ARFeature).
-    /// - onClose: 셸이 커버를 닫을 때.
     public init(
         dependencies: DiscoveryDependencies = .mock,
         onEnterExperience: @escaping () -> Void = {},
@@ -23,46 +21,47 @@ public struct RootView: View {
     }
 
     public var body: some View {
-        ZStack(alignment: .topLeading) {
-            CatureColor.darkSurface.ignoresSafeArea()
-            content
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .padding(CatureSpacing.lg)
-            if let onClose {
-                Button { onClose() } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundStyle(CatureColor.darkTextPrimary)
-                        .padding(CatureSpacing.sm)
+        Group {
+            if case .camera = vm.step {
+                CameraScreen(
+                    controller: controller,
+                    onCaptured: { url in Task { await vm.ingest(url) } },
+                    onPickFallback: { Task { await vm.capture() } },
+                    onClose: onClose
+                )
+            } else {
+                ZStack(alignment: .topLeading) {
+                    CatureColor.darkSurface.ignoresSafeArea()
+                    content
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .padding(CatureSpacing.lg)
+                    if let onClose {
+                        Button { onClose() } label: {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundStyle(CatureColor.darkTextPrimary)
+                                .padding(CatureSpacing.sm)
+                        }
+                        .padding(CatureSpacing.md)
+                        .accessibilityLabel("닫기")
+                    }
                 }
-                .padding(CatureSpacing.md)
-                .accessibilityLabel("닫기")
             }
         }
         .preferredColorScheme(.dark)
-        .task {
-            // 발견 진입 → 커버 안정화 후 바로 카메라(중간 페이지 없음).
-            guard !didStart else { return }
-            didStart = true
-            vm.onDismiss = onClose
-            try? await Task.sleep(for: .milliseconds(350))
-            if case .camera = vm.step { await vm.capture() }
-        }
     }
 
     @ViewBuilder
     private var content: some View {
         switch vm.step {
         case .camera:
-            ProgressView()      // 카메라 여는 중(중간 페이지 없음)
-                .tint(CatureColor.accent)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            EmptyView()   // 위에서 CameraScreen으로 처리
         case .analyzing:
             AnalyzingView()
         case .candidates(let candidates):
             AnalysisView(vm: vm, candidates: candidates)
         case .notFound:
-            NotFoundView(onRetake: { Task { await vm.retake() } })
+            NotFoundView(onRetake: { vm.retake() })
         case .coexist(let card, let species, let candidate):
             CoexistCardView(vm: vm, card: card, species: species, candidate: candidate)
         case .collected(let name, let count, let rate, let canExperience):
