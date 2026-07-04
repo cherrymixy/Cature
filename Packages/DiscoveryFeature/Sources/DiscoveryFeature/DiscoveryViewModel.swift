@@ -20,8 +20,8 @@ final class DiscoveryViewModel {
     private(set) var step: DiscoveryStep = .camera
 
     private let deps: DiscoveryDependencies
-    private(set) var lastPhoto: URL?   // 방금 찍은 사진(분석 화면에서 표시)
-    private var lastLocation: LocationSample?
+    private(set) var lastPhoto: URL?          // 방금 찍은 사진(분석 화면)
+    private(set) var lastLocation: LocationSample?   // 발견 위치(공존카드)
     private var lastCandidates: [AnalysisCandidate] = []
 
     init(deps: DiscoveryDependencies) {
@@ -48,6 +48,11 @@ final class DiscoveryViewModel {
     /// 다시 찍기 → 카메라 화면으로.
     func retake() {
         step = .camera
+    }
+
+    /// 공존카드 → 후보로 돌아가기.
+    func backToCandidates() {
+        step = lastCandidates.isEmpty ? .camera : .candidates(lastCandidates)
     }
 
     /// 후보 1개 확정(자동 확정 아님) → 공존 카드.

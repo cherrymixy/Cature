@@ -17,9 +17,9 @@ public enum SampleData {
 
     /// MockLLMService.identify 고정 후보 (플레이북 S1: 카멜레온 0.78 / 도마뱀 0.24 / 버섯 0.02).
     public static let identifyCandidates: [AnalysisCandidate] = [
-        AnalysisCandidate(speciesId: "chameleon", displayName: "카멜레온", confidence: 0.78),
-        AnalysisCandidate(speciesId: "lizard",    displayName: "도마뱀",   confidence: 0.24),
-        AnalysisCandidate(speciesId: nil,         displayName: "버섯",     confidence: 0.02),
+        AnalysisCandidate(speciesId: "chameleon", displayName: "카멜레온", confidence: 0.78, category: "동물"),
+        AnalysisCandidate(speciesId: "lizard",    displayName: "도마뱀",   confidence: 0.24, category: "동물"),
+        AnalysisCandidate(speciesId: nil,         displayName: "버섯",     confidence: 0.02, category: "식물"),
     ]
 
     /// 카멜레온 검수 공존 카드 (플레이북 S1 샘플).

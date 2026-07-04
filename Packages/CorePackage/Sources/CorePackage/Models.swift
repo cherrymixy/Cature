@@ -68,11 +68,13 @@ public struct AnalysisCandidate: Codable, Hashable, Sendable {
     public let speciesId: String?      // 큐레이션 종이 아니면 nil
     public let displayName: String
     public let confidence: Double      // 0.0 ~ 1.0 (진짜 확률 아님 → "정보 정확도")
+    public let category: String?       // 동물 · 식물 · 곤충 … (분석 화면 라벨)
 
-    public init(speciesId: String?, displayName: String, confidence: Double) {
+    public init(speciesId: String?, displayName: String, confidence: Double, category: String? = nil) {
         self.speciesId = speciesId
         self.displayName = displayName
         self.confidence = confidence
+        self.category = category
     }
 }
 

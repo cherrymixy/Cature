@@ -46,7 +46,7 @@ public struct OpenAILLMService: LLMService {
         // 가드레일: 사람/무생물/판독불가 → 빈 후보(호출측이 '생물 아님' 분기).
         guard result.isBiological else { return [] }
         return result.candidates
-            .map { AnalysisCandidate(speciesId: $0.speciesId, displayName: $0.displayName, confidence: $0.confidence) }
+            .map { AnalysisCandidate(speciesId: $0.speciesId, displayName: $0.displayName, confidence: $0.confidence, category: $0.category) }
             .sorted { $0.confidence > $1.confidence }
     }
 
@@ -111,6 +111,7 @@ struct IdentifyResult: Decodable {
         let displayName: String
         let speciesId: String?
         let confidence: Double
+        let category: String?
     }
 }
 
@@ -165,11 +166,12 @@ enum OpenAIBody {
                 "items": [
                     "type": "object",
                     "additionalProperties": false,
-                    "required": ["displayName", "speciesId", "confidence"],
+                    "required": ["displayName", "speciesId", "confidence", "category"],
                     "properties": [
                         "displayName": ["type": "string"],
                         "speciesId": ["type": ["string", "null"]],
                         "confidence": ["type": "number"],
+                        "category": ["type": "string"],
                     ],
                 ],
             ],
