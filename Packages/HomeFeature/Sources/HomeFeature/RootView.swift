@@ -547,15 +547,6 @@ struct ComingSoonPopup: View {
                 .onTapGesture { onClose() }
 
             VStack(spacing: CatureSpacing.md) {
-                ZStack {
-                    Circle()
-                        .fill(CatureColor.lime)
-                        .frame(width: 56, height: 56)
-                    Image(systemName: "hammer.fill")
-                        .font(.system(size: 22, weight: .semibold))
-                        .foregroundStyle(CatureColor.ink)
-                }
-
                 VStack(spacing: 6) {
                     Text("준비중입니다")
                         .font(CatureFont.headline)
@@ -566,8 +557,15 @@ struct ComingSoonPopup: View {
                         .multilineTextAlignment(.center)
                 }
 
-                Button("확인") { onClose() }
-                    .buttonStyle(.caturePrimary)
+                Button { onClose() } label: {
+                    Text("확인")
+                        .font(CatureFont.headline)
+                        .foregroundStyle(CatureColor.onFab)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, CatureSpacing.sm)
+                        .background(CatureColor.ink, in: RoundedRectangle(cornerRadius: CatureRadius.md, style: .continuous))
+                }
+                .buttonStyle(.plain)
             }
             .padding(CatureSpacing.lg)
             .frame(maxWidth: 280)
