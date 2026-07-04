@@ -6,14 +6,14 @@ import Foundation
 import SwiftUI
 
 public struct RootView: View {
-    @StateObject private var viewModel: MinigameIntegrationViewModel
+    @StateObject private var viewModel: CatchYourCardViewModel
 
     public init(
         collectionRepository: any CollectionRepository = MockCollectionRepository(),
         speciesRepository: any SpeciesRepository = MockSpeciesRepository()
     ) {
         _viewModel = StateObject(
-            wrappedValue: MinigameIntegrationViewModel(
+            wrappedValue: CatchYourCardViewModel(
                 collectionRepository: collectionRepository,
                 speciesRepository: speciesRepository
             )
@@ -21,128 +21,157 @@ public struct RootView: View {
     }
 
     public var body: some View {
-        MinigameIntegrationView(viewModel: viewModel)
+        CatchYourCardView(viewModel: viewModel)
             .task {
                 await viewModel.load()
             }
     }
 }
 
-struct MinigameIntegrationView: View {
-    @ObservedObject var viewModel: MinigameIntegrationViewModel
+struct CatchYourCardView: View {
+    @ObservedObject var viewModel: CatchYourCardViewModel
+
+    private let gridColumns = Array(
+        repeating: GridItem(.flexible(), spacing: 10),
+        count: 3
+    )
 
     var body: some View {
-        NavigationView {
-            List {
-                Section {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("기능")
-                            .font(.title.bold())
-                        Text(viewModel.summary)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(.vertical, 4)
+        ZStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    header
+                    gameBoard
+                    retryButton
                 }
+                .padding(18)
+            }
 
-                Section("게임") {
-                    GamePolicyRow(
-                        title: "Catch Your Card",
-                        subtitle: viewModel.cardFlipPolicy,
-                        isReady: viewModel.canStartCardFlip
-                    )
+            if viewModel.phase.showsOverlay {
+                resultOverlay
+            }
+        }
+        .animation(.easeInOut(duration: 0.2), value: viewModel.cards)
+        .animation(.easeInOut(duration: 0.2), value: viewModel.phase)
+    }
 
-                    GamePolicyRow(
-                        title: "가위바위보",
-                        subtitle: viewModel.rockPaperScissorsPolicy,
-                        isReady: viewModel.canStartRockPaperScissors
-                    )
-                }
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Catch Your Card")
+                .font(.title.bold())
 
-                if viewModel.playableRows.isEmpty {
-                    Section {
-                        MinigameEmptyPolicyView(
-                            title: "수집한 생물이 없어요",
-                            message: "실데이터 주입 전에는 Mock 종으로 미니게임 프리뷰를 확인합니다."
-                        )
-                    }
-                } else {
-                    Section("게임 후보") {
-                        ForEach(viewModel.playableRows) { row in
-                            HStack {
-                                Text(row.symbol)
-                                    .font(.headline)
-                                    .frame(width: 32, height: 32)
+            HStack {
+                Label("\(viewModel.remainingSeconds)s", systemImage: "timer")
+                Spacer()
+                Text("\(viewModel.matchedPairCount)/6")
+            }
+            .font(.headline)
 
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(row.name)
-                                        .lineLimit(1)
-                                        .minimumScaleFactor(0.8)
-                                    Text(row.detail)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
-                        }
-                    }
+            ProgressView(value: viewModel.progress)
+        }
+    }
+
+    private var gameBoard: some View {
+        LazyVGrid(columns: gridColumns, spacing: 10) {
+            ForEach(viewModel.cards) { card in
+                CatchCardView(card: card) {
+                    viewModel.choose(card)
                 }
             }
-            .navigationTitle("미니게임")
         }
+        .accessibilityElement(children: .contain)
+    }
+
+    private var retryButton: some View {
+        Button {
+            viewModel.restart()
+        } label: {
+            Label("다시 도전하기", systemImage: "arrow.clockwise")
+                .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.borderedProminent)
+        .controlSize(.large)
+    }
+
+    private var resultOverlay: some View {
+        VStack(spacing: 14) {
+            Image(systemName: viewModel.phase == .won ? "party.popper.fill" : "hourglass")
+                .font(.largeTitle)
+
+            Text(viewModel.phase.title)
+                .font(.title.bold())
+
+            Text(viewModel.phase.message)
+                .font(.body)
+                .multilineTextAlignment(.center)
+
+            Button {
+                viewModel.restart()
+            } label: {
+                Label("다시 도전하기", systemImage: "arrow.clockwise")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+        }
+        .padding(24)
+        .frame(maxWidth: 320)
+        .background(.regularMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .shadow(radius: 18)
+        .padding()
     }
 }
 
-struct MinigameEmptyPolicyView: View {
-    let title: String
-    let message: String
+struct CatchCardView: View {
+    let card: CatchCard
+    let action: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(title)
-                .font(.headline)
-            Text(message)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        .padding(.vertical, 8)
-    }
-}
+        Button(action: action) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(card.isFaceUp || card.isMatched ? .regularMaterial : .thinMaterial)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .strokeBorder(.secondary, lineWidth: 1)
+                    }
 
-struct GamePolicyRow: View {
-    let title: String
-    let subtitle: String
-    let isReady: Bool
+                VStack(spacing: 8) {
+                    Text(card.isFaceUp || card.isMatched ? card.creature.symbol : "?")
+                        .font(.largeTitle.bold())
 
-    var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: isReady ? "checkmark.circle.fill" : "exclamationmark.circle")
-                .foregroundStyle(isReady ? .green : .secondary)
-                .accessibilityHidden(true)
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(.headline)
-                Text(subtitle)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(2)
+                    Text(card.isFaceUp || card.isMatched ? card.creature.name : "Cature")
+                        .font(.caption.bold())
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                }
+                .padding(8)
             }
+            .aspectRatio(0.78, contentMode: .fit)
+            .opacity(card.isMatched ? 0.68 : 1)
+            .rotation3DEffect(
+                .degrees(card.isFaceUp || card.isMatched ? 0 : 180),
+                axis: (x: 0, y: 1, z: 0)
+            )
         }
-        .accessibilityLabel("\(title), \(subtitle)")
+        .buttonStyle(.plain)
+        .disabled(card.isMatched)
+        .accessibilityLabel(card.accessibilityLabel)
     }
 }
 
 @MainActor
-final class MinigameIntegrationViewModel: ObservableObject {
-    @Published private(set) var summary = "Mock 데이터 확인 중"
-    @Published private(set) var playableRows: [MinigameSpeciesRow] = []
-    @Published private(set) var canStartCardFlip = false
-    @Published private(set) var canStartRockPaperScissors = false
-    @Published private(set) var cardFlipPolicy = "6종 이상이면 12장 매칭 게임 가능"
-    @Published private(set) var rockPaperScissorsPolicy = "1종 이상이면 상대 생물 선택 가능"
+final class CatchYourCardViewModel: ObservableObject {
+    @Published private(set) var cards: [CatchCard] = []
+    @Published private(set) var remainingSeconds = 30
+    @Published private(set) var phase: CatchGamePhase = .loading
 
     private let collectionRepository: any CollectionRepository
     private let speciesRepository: any SpeciesRepository
+    private var timerTask: Task<Void, Never>?
+    private var openedCardIDs: [CatchCard.ID] = []
+    private var isResolvingMismatch = false
+    private var creatures: [CatchCreature] = []
 
     init(
         collectionRepository: any CollectionRepository,
@@ -152,49 +181,217 @@ final class MinigameIntegrationViewModel: ObservableObject {
         self.speciesRepository = speciesRepository
     }
 
+    var matchedPairCount: Int {
+        cards.filter(\.isMatched).count / 2
+    }
+
+    var progress: Double {
+        Double(remainingSeconds) / Double(Self.gameDuration)
+    }
+
     func load() async {
+        guard cards.isEmpty else { return }
+
         do {
-            let species = try await speciesRepository.allSpecies()
-            let entries = try await collectionRepository.allEntries()
-            apply(species: species, entries: entries)
+            let loadedSpecies = try await playableSpecies()
+            creatures = Self.creatures(from: loadedSpecies)
+            restart()
         } catch {
-            apply(species: [], entries: [])
+            creatures = Self.fallbackCreatures
+            restart()
         }
     }
 
-    private func apply(species: [Species], entries: [CollectionEntry]) {
-        let entriesBySpecies = Dictionary(uniqueKeysWithValues: entries.map { ($0.speciesId, $0) })
-        let discoveredSpecies = species.filter { entriesBySpecies[$0.id]?.discovered == true }
-        let playableSpecies = discoveredSpecies.isEmpty ? species : discoveredSpecies
+    func restart() {
+        timerTask?.cancel()
+        remainingSeconds = Self.gameDuration
+        phase = .playing
+        openedCardIDs = []
+        isResolvingMismatch = false
+        cards = Self.makeDeck(from: creatures)
+        startTimer()
+    }
 
-        playableRows = playableSpecies.map { MinigameSpeciesRow(species: $0, entry: entriesBySpecies[$0.id]) }
-        canStartCardFlip = playableSpecies.count >= 2
-        canStartRockPaperScissors = !playableSpecies.isEmpty
+    func choose(_ card: CatchCard) {
+        guard phase == .playing,
+              !isResolvingMismatch,
+              !card.isMatched,
+              !card.isFaceUp,
+              openedCardIDs.count < 2,
+              let index = cards.firstIndex(where: { $0.id == card.id })
+        else { return }
 
-        summary = "\(playableSpecies.count)종 사용 가능"
-        cardFlipPolicy = playableSpecies.count >= 6
-            ? "6쌍 12장 구성이 가능해요."
-            : "\(playableSpecies.count)종으로 축소 덱 또는 Mock fallback 필요"
-        rockPaperScissorsPolicy = playableSpecies.isEmpty
-            ? "상대 생물이 없어 시작할 수 없어요."
-            : "\(playableSpecies[0].nameKo) 등으로 상대 선택 가능"
+        cards[index].isFaceUp = true
+        openedCardIDs.append(card.id)
+
+        guard openedCardIDs.count == 2 else { return }
+        resolveOpenedCards()
+    }
+
+    private func playableSpecies() async throws -> [Species] {
+        let allSpecies = try await speciesRepository.allSpecies()
+        let entries = try await collectionRepository.allEntries()
+        let discoveredIDs = Set(entries.filter(\.discovered).map(\.speciesId))
+
+        if discoveredIDs.isEmpty {
+            return Array(allSpecies.prefix(Self.pairCount))
+        }
+
+        let discoveredSpecies = allSpecies.filter { discoveredIDs.contains($0.id) }
+        let remainingSpecies = allSpecies.filter { !discoveredIDs.contains($0.id) }
+        return Array((discoveredSpecies + remainingSpecies).prefix(Self.pairCount))
+    }
+
+    private func resolveOpenedCards() {
+        let selected = cards.filter { openedCardIDs.contains($0.id) }
+        guard selected.count == 2 else { return }
+
+        if selected[0].creature.id == selected[1].creature.id {
+            for cardID in openedCardIDs {
+                if let index = cards.firstIndex(where: { $0.id == cardID }) {
+                    cards[index].isMatched = true
+                }
+            }
+            openedCardIDs = []
+            checkWin()
+        } else {
+            isResolvingMismatch = true
+            let mismatchIDs = openedCardIDs
+            Task { [weak self] in
+                try? await Task.sleep(nanoseconds: 750_000_000)
+                self?.hideMismatch(mismatchIDs)
+            }
+        }
+    }
+
+    private func hideMismatch(_ mismatchIDs: [CatchCard.ID]) {
+        for cardID in mismatchIDs {
+            if let index = cards.firstIndex(where: { $0.id == cardID }) {
+                cards[index].isFaceUp = false
+            }
+        }
+        openedCardIDs = []
+        isResolvingMismatch = false
+    }
+
+    private func checkWin() {
+        guard cards.allSatisfy(\.isMatched) else { return }
+        timerTask?.cancel()
+        phase = .won
+    }
+
+    private func startTimer() {
+        timerTask = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                self?.tick()
+            }
+        }
+    }
+
+    private func tick() {
+        guard phase == .playing else { return }
+
+        if remainingSeconds > 1 {
+            remainingSeconds -= 1
+        } else {
+            remainingSeconds = 0
+            timerTask?.cancel()
+            phase = cards.allSatisfy(\.isMatched) ? .won : .lost
+        }
+    }
+
+    private static func creatures(from species: [Species]) -> [CatchCreature] {
+        var result = species.map {
+            CatchCreature(
+                id: $0.id,
+                name: $0.nameKo,
+                symbol: String($0.nameKo.prefix(1))
+            )
+        }
+
+        for fallback in fallbackCreatures where result.count < pairCount {
+            if !result.contains(where: { $0.id == fallback.id }) {
+                result.append(fallback)
+            }
+        }
+
+        return Array(result.prefix(pairCount))
+    }
+
+    private static func makeDeck(from creatures: [CatchCreature]) -> [CatchCard] {
+        creatures
+            .flatMap { creature in
+                [
+                    CatchCard(creature: creature),
+                    CatchCard(creature: creature),
+                ]
+            }
+            .shuffled()
+    }
+
+    private static let gameDuration = 30
+    private static let pairCount = 6
+
+    private static let fallbackCreatures: [CatchCreature] = [
+        CatchCreature(id: "cat", name: "고양이", symbol: "고"),
+        CatchCreature(id: "chameleon", name: "카멜레온", symbol: "카"),
+        CatchCreature(id: "lizard", name: "도마뱀", symbol: "도"),
+        CatchCreature(id: "tree_frog", name: "청개구리", symbol: "청"),
+        CatchCreature(id: "ladybug", name: "무당벌레", symbol: "무"),
+        CatchCreature(id: "sparrow", name: "참새", symbol: "참"),
+    ]
+}
+
+struct CatchCard: Identifiable, Equatable {
+    let id = UUID()
+    let creature: CatchCreature
+    var isFaceUp = false
+    var isMatched = false
+
+    var accessibilityLabel: String {
+        if isMatched { return "\(creature.name) 맞춘 카드" }
+        if isFaceUp { return "\(creature.name) 열린 카드" }
+        return "뒤집힌 카드"
     }
 }
 
-struct MinigameSpeciesRow: Identifiable, Equatable {
+struct CatchCreature: Identifiable, Equatable {
     let id: String
     let name: String
     let symbol: String
-    let detail: String
+}
 
-    init(species: Species, entry: CollectionEntry?) {
-        id = species.id
-        name = species.nameKo
-        symbol = String(species.nameKo.prefix(1))
+enum CatchGamePhase: Equatable {
+    case loading
+    case playing
+    case won
+    case lost
 
-        let source = entry?.discovered == true ? "수집 종" : "Mock 후보"
-        let media = species.thumbnail == nil ? "썸네일 없음" : "썸네일 있음"
-        detail = "\(source) · \(media)"
+    var showsOverlay: Bool {
+        self == .won || self == .lost
+    }
+
+    var title: String {
+        switch self {
+        case .loading, .playing:
+            return ""
+        case .won:
+            return "congratulation!"
+        case .lost:
+            return "Time Over"
+        }
+    }
+
+    var message: String {
+        switch self {
+        case .loading, .playing:
+            return ""
+        case .won:
+            return "30초 안에 모든 생물 카드의 짝을 찾았어요."
+        case .lost:
+            return "시간이 끝났어요. 다시 섞어서 도전해 볼까요?"
+        }
     }
 }
 

@@ -9,6 +9,7 @@
 
 import SwiftUI
 import DesignTokens
+import HomeFeature
 import DiscoveryFeature
 import ARFeature
 
@@ -62,7 +63,13 @@ struct RootView: View {
     @ViewBuilder
     private var selectedContent: some View {
         switch selectedTab {
-        case .home:    HomeTabPlaceholder()
+        case .home:
+            HomeFeature.RootView(
+                collectionRepository: AppEnvironment.collection,
+                sightingRepository: AppEnvironment.sightings,
+                speciesRepository: AppEnvironment.species,
+                locationService: AppEnvironment.location
+            )
         case .feature: FeatureTabPlaceholder()
         case .my:      MyTabPlaceholder()
         }
