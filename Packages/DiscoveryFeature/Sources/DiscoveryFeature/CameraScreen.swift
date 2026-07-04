@@ -32,9 +32,11 @@ struct CameraScreen: View {
                 if let onClose {
                     Button { onClose() } label: {
                         Image(systemName: "chevron.left")
-                            .font(.system(size: 22, weight: .semibold))
+                            .font(.system(size: 20, weight: .semibold))
                             .foregroundStyle(.white)
                             .shadow(color: .black.opacity(0.3), radius: 3)
+                            .frame(width: 44, height: 44)
+                            .contentShape(Rectangle())
                     }
                     .accessibilityLabel("닫기")
                 }
