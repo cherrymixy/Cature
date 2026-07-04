@@ -95,9 +95,8 @@ struct RootView: View {
                     tabButton(.feature, title: "Task", icon: "list.bullet.rectangle.fill")
                     tabButton(.my,      title: "My",   icon: "person.fill")
                 }
-                .padding(.leading, 6)
-                .padding(.trailing, 14)
                 .frame(height: 58)
+                .fixedSize(horizontal: true, vertical: false)   // 콘텐츠 폭에 고정 → 좌우 빈 여백 제거(선택 알약이 끝에 붙음)
                 .background {
                     Capsule()
                         .fill(.ultraThinMaterial)
