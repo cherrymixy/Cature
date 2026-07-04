@@ -180,13 +180,11 @@ struct RootView: View {
                 Text(label)                       // 배경 없이 텍스트만
                     .font(CatureFont.headline)
                     .foregroundStyle(CatureColor.textPrimary)
-                    .shadow(color: .black.opacity(0.18), radius: 3, y: 1)
                 Image(systemName: icon)
                     .font(.system(size: 20, weight: .semibold))
-                    .foregroundStyle(CatureColor.accent)
+                    .foregroundStyle(CatureColor.accent)          // 라임 아이콘
                     .frame(width: 52, height: 52)
-                    .background(CatureColor.surface, in: Circle())
-                    .shadow(color: .black.opacity(0.15), radius: 8, y: 3)
+                    .background(CatureColor.fab, in: Circle())     // 블랙 원, 섀도우 없음
             }
         }
         .buttonStyle(.plain)
