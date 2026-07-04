@@ -9,12 +9,14 @@ let package = Package(
     ],
     dependencies: [
         .package(path: "../CorePackage"),
+        .package(path: "../DesignTokens"),
     ],
     targets: [
         .target(
             name: "OnboardingFeature",
             dependencies: [
                 .product(name: "CorePackage", package: "CorePackage"),
+                .product(name: "DesignTokens", package: "DesignTokens"),
             ]
         ),
     ]

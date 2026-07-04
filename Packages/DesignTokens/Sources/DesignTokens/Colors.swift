@@ -15,9 +15,9 @@ public enum CatureAppearance: Sendable {
 public enum CatureColor {
 
     // MARK: Brand
-    /// 자연 그린 accent (앱 AccentColor와 동일 계열).
-    public static let accent = Color(red: 0.298, green: 0.667, blue: 0.478)
-    public static let accentSoft = Color(red: 0.298, green: 0.667, blue: 0.478).opacity(0.15)
+    /// 메인 브랜드 라임 #F4FE7D (앱 AccentColor와 동일).
+    public static let accent = Color(red: 0.957, green: 0.996, blue: 0.490)
+    public static let accentSoft = Color(red: 0.957, green: 0.996, blue: 0.490).opacity(0.15)
     /// Figma 하이라이트 라임 (#f4fe7d)
     public static let lime = Color(red: 0.957, green: 0.996, blue: 0.490)
     /// 어두운 버튼/잉크 (#282828)
