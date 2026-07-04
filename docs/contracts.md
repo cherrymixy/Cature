@@ -11,7 +11,7 @@
 | `UserProfile` | `userId`, `nickname`, `profileImagePath?` | `Identifiable`(id=userId) |
 | `Species` | `id`, `nameKo`, `category`, `usdzAsset?`, `thumbnail?` | 도감 마스터. `canExperience`=usdz 보유 여부 |
 | `CoexistCard` | `speciesId`, `intro`, `needs[]`, `disturbances[]`, `source` | `source`: `.curated` \| `.llm` |
-| `AnalysisCandidate` | `speciesId?`, `displayName`, `confidence(0~1)` | 큐레이션 아니면 `speciesId=nil`. confidence=정보 정확도 |
+| `AnalysisCandidate` | `speciesId?`, `displayName`, `confidence(0~1)`, `category?` | 큐레이션 아니면 `speciesId=nil`. confidence=정보 정확도. category=동물·식물 등 분석 라벨(#21) |
 | `Sighting` | `id`, `speciesId`, `photoPath`, `latitude?`, `longitude?`, `locationName?`, `candidates[]`, `createdAt` | 발견 1건 |
 | `CollectionEntry` | `speciesId`, `captureCount`, `discovered`, `firstSeenAt`, `lastSeenAt`, `isFavorite` | 종별 수집 상태 |
 | `CardSource` | `.curated` / `.llm` | enum |
@@ -62,3 +62,12 @@ let candidates = try await MockLLMService().identify(image: imageData)  // [카�
 cd Packages/CorePackage && swift test    # 계약 경계 테스트
 ```
 `import CorePackage` 한 줄로 모델·프로토콜·Mock 전부 사용. **Data/Services 구현에 직접 의존하지 말 것** — 프로토콜만.
+
+## 6. 조율 이벤트 로그
+
+### 2026-07-05 · 셸 ↔ HomeFeature 하단 내비 경계 (승아 → 예준)
+- **상황:** `HomeFeature.RootView`가 **자체 하단바**(Home/checklist/person) + **카메라 FAB**를 렌더 → 셸 하단바(홈/기능/마이 알약 + 발견·AR 스피드다이얼 FAB)와 **겹침**.
+- **규칙:** 하단 내비 + FAB는 **셸(승아) 소유**. Feature 루트뷰는 **콘텐츠만** 노출한다(홈 = 지도·타이틀·필터레일·카드). `AppShell`이 하단바를 얹는다. (근거: `CLAUDE.md` "Feature는 루트뷰만 노출, 셸이 꽂는다".)
+- **요청(예준):** `HomeFeature/Sources/HomeFeature/RootView.swift`의 `bottomBar`(≈L106) + 그 안 자체 FAB **제거**. 탭 전환·발견·AR 진입은 셸이 처리하므로 Feature에 하단 내비 불필요.
+- **상태:** 셸 배선 완료(#25, 홈 표시 정상). HomeFeature에서 하단바만 빼면 겹침 해소.
+- **부수(예준 확인):** 홈 타이틀 "Cature"가 좌측에서 잘려 **"ature"**로 보임 — `titleSection` 좌측 오프셋/패딩 점검 부탁.
