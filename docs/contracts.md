@@ -11,7 +11,7 @@
 | `UserProfile` | `userId`, `nickname`, `profileImagePath?` | `Identifiable`(id=userId) |
 | `Species` | `id`, `nameKo`, `category`, `usdzAsset?`, `thumbnail?` | 도감 마스터. `canExperience`=usdz 보유 여부 |
 | `CoexistCard` | `speciesId`, `intro`, `needs[]`, `disturbances[]`, `source` | `source`: `.curated` \| `.llm` |
-| `AnalysisCandidate` | `speciesId?`, `displayName`, `confidence(0~1)` | 큐레이션 아니면 `speciesId=nil`. confidence=정보 정확도 |
+| `AnalysisCandidate` | `speciesId?`, `displayName`, `confidence(0~1)`, `category?` | 큐레이션 아니면 `speciesId=nil`. confidence=정보 정확도. category=동물·식물 등 분석 라벨(#21) |
 | `Sighting` | `id`, `speciesId`, `photoPath`, `latitude?`, `longitude?`, `locationName?`, `candidates[]`, `createdAt` | 발견 1건 |
 | `CollectionEntry` | `speciesId`, `captureCount`, `discovered`, `firstSeenAt`, `lastSeenAt`, `isFavorite` | 종별 수집 상태 |
 | `CardSource` | `.curated` / `.llm` | enum |
@@ -62,3 +62,13 @@ let candidates = try await MockLLMService().identify(image: imageData)  // [카�
 cd Packages/CorePackage && swift test    # 계약 경계 테스트
 ```
 `import CorePackage` 한 줄로 모델·프로토콜·Mock 전부 사용. **Data/Services 구현에 직접 의존하지 말 것** — 프로토콜만.
+
+## 6. 조율 이벤트 로그
+
+### 2026-07-05 · 하단바 소유 이관 → 예준 (최종 디자인)
+> ⚠️ 앞선 "하단바=셸 소유" 방향을 **정정**한다. 하단바 최종 디자인은 예준 것이 맞고, 셸의 현재 하단바는 임시다.
+- **결정:** 앱 **하단바(내비 + 카메라 FAB)의 소유·최종 디자인 = 예준.** `AppShell`의 현재 하단바(홈/기능/마이 알약 + 발견·AR 스피드다이얼)는 **임시** → 예준 디자인으로 대체된다.
+- **현황:** `HomeFeature.RootView`가 이미 자체 하단바(Home/checklist/person) + 카메라 FAB를 렌더 → 지금은 셸 임시 바와 **겹쳐 보임**(과도기). 예준 바 버튼은 아직 no-op.
+- **예준 담당:** 하단바를 **앱 전역 컴포넌트**로 최종화 — 탭 전환(홈/기능/마이) + **발견/AR 진입 FAB** 동작 포함. 시각·구성은 예준.
+- **승아(셸) 담당:** 라우팅 상태·콜백(`selectedTab`·`showCamera`·`showExperience`) 주입 제공. 예준 하단바 확정되면 셸의 **임시 하단바 제거** + 예준 컴포넌트에 콜백 연결.
+- **부수(예준 확인):** 홈 타이틀 "Cature"가 좌측에서 잘려 **"ature"**로 보임 — `titleSection` 좌측 오프셋/패딩 점검 부탁.

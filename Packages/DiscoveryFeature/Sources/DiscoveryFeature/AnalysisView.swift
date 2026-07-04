@@ -1,5 +1,5 @@
 //  AnalysisView.swift
-//  DiscoveryFeature — 분석 결과: 찍은 사진 + 후보(정보 정확도) + 다시 찍기.
+//  DiscoveryFeature — 분석(라이트, Figma): 찍은 사진 + 후보(카테고리·이름·정확도) 2단계 선택 + 선택하기.
 
 import SwiftUI
 import CorePackage
@@ -11,45 +11,33 @@ import UIKit
 struct AnalysisView: View {
     let vm: DiscoveryViewModel
     let candidates: [AnalysisCandidate]
+    @State private var selected: AnalysisCandidate?
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: CatureSpacing.md) {
-                capturedImage
-
-                Text("이 생물일까요?")
-                    .font(CatureFont.title)
-                    .foregroundStyle(CatureColor.darkTextPrimary)
-                Text("정보 정확도 순 · 하나를 골라주세요")
-                    .font(CatureFont.caption)
-                    .foregroundStyle(CatureColor.darkTextSecondary)
-
-                ForEach(candidates, id: \.self) { candidate in
-                    Button {
-                        Task { await vm.select(candidate) }
-                    } label: {
-                        HStack {
-                            Text(candidate.displayName)
-                                .font(CatureFont.headline)
-                                .foregroundStyle(CatureColor.darkTextPrimary)
-                            Spacer()
-                            Text("\(Int((candidate.confidence * 100).rounded()))%")
-                                .font(CatureFont.body)
-                                .foregroundStyle(CatureColor.accent)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .catureCard(.dark)
-                    }
-                    .buttonStyle(.plain)
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: CatureSpacing.md) {
+                    header
+                    capturedImage
+                    ForEach(candidates, id: \.self) { candidateCard($0) }
                 }
-
-                Button("인식이 잘못됐나요? 다시 찍기") { vm.retake() }
-                    .font(CatureFont.callout)
-                    .foregroundStyle(CatureColor.darkTextSecondary)
-                    .frame(maxWidth: .infinity)
-                    .padding(.top, CatureSpacing.sm)
+                .padding(.horizontal, 15)
+                .padding(.bottom, CatureSpacing.md)
             }
+            selectButton
         }
+    }
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("이녀석의 정체는?")
+                .font(.system(size: 24, weight: .semibold))
+                .foregroundStyle(.black)
+            Text("맞는 녀석을 골라골라!")
+                .font(.system(size: 14))
+                .foregroundStyle(.black.opacity(0.5))
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     // 방금 찍은 사진
@@ -59,9 +47,62 @@ struct AnalysisView: View {
                 .resizable()
                 .scaledToFill()
                 .frame(maxWidth: .infinity)
-                .frame(height: 220)
-                .clipShape(RoundedRectangle(cornerRadius: CatureRadius.card, style: .continuous))
+                .frame(height: 240)
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
+    }
+
+    // 후보 카드: 탭 → 하이라이트(라임), '선택하기'로 확정.
+    private func candidateCard(_ candidate: AnalysisCandidate) -> some View {
+        let isSelected = selected == candidate
+        return Button { selected = candidate } label: {
+            HStack(spacing: CatureSpacing.sm) {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(candidate.category ?? "생물")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(.black.opacity(0.4))
+                    Text(candidate.displayName)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(.black)
+                }
+                Spacer()
+                Text("\(Int((candidate.confidence * 100).rounded()))%")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(isSelected ? CatureColor.lime : Color(red: 0.72, green: 0.72, blue: 0.72))
+                    .padding(.horizontal, 11)
+                    .padding(.vertical, 2)
+                    .background(
+                        isSelected ? Color.black : Color(red: 0.89, green: 0.89, blue: 0.89),
+                        in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    )
+            }
+            .padding(.horizontal, 20)
+            .frame(maxWidth: .infinity, minHeight: 70)
+            .background(isSelected ? CatureColor.lime : Color.white,
+                        in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(.black.opacity(0.1)))
+            .shadow(color: .black.opacity(0.05), radius: 3)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var selectButton: some View {
+        Button {
+            if let selected { Task { await vm.select(selected) } }
+        } label: {
+            Text("선택하기")
+                .font(.system(size: 16, weight: .medium))
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .frame(height: 56)
+                .background(
+                    selected == nil ? CatureColor.ink.opacity(0.35) : CatureColor.ink,
+                    in: RoundedRectangle(cornerRadius: 15.6, style: .continuous)
+                )
+        }
+        .disabled(selected == nil)
+        .padding(.horizontal, 23)
+        .padding(.vertical, CatureSpacing.sm)
     }
 
     private static func loadImage(_ url: URL) -> Image? {

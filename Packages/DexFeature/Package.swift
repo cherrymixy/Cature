@@ -3,7 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "DexFeature",
-    platforms: [.iOS(.v17)],
+    platforms: [.iOS(.v17), .macOS(.v12)],
     products: [
         .library(name: "DexFeature", targets: ["DexFeature"]),
     ],
