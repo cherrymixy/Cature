@@ -32,6 +32,7 @@ public struct RootView: View {
     @State private var cards: [CreatureCardItem] = []
     @State private var discoveredCount = 0
     @State private var selectedCardID: String?
+    @State private var mapCameraTick = 0   // 카메라 변할 때 컬러 마커 오버레이 재배치 트리거
 
     public init(
         collectionRepository: any CollectionRepository = MockCollectionRepository(),
@@ -47,23 +48,31 @@ public struct RootView: View {
 
     public var body: some View {
         ZStack(alignment: .topLeading) {
-            Map(position: $cameraPosition) {
-                UserAnnotation()
-
-                ForEach(markers) { marker in
-                    Annotation(marker.name, coordinate: marker.coordinate) {
-                        CreatureMarkerView(name: marker.name, speciesId: marker.speciesId)
-                    }
-                    .annotationTitles(.hidden)
+            MapReader { proxy in
+                Map(position: $cameraPosition) {
+                    UserAnnotation()
                 }
+                .mapStyle(.standard(elevation: .flat, pointsOfInterest: .excludingAll))
+                .grayscale(1.0)   // 지도 레이어만 모노톤
+                .mapControls {
+                    MapUserLocationButton()
+                    MapCompass()
+                }
+                .overlay {
+                    // 컬러 마커 — grayscale 밖 오버레이에 좌표변환으로 배치(지도는 흑백, 마커만 컬러)
+                    let _ = mapCameraTick   // 카메라 변경 시 재계산 트리거
+                    ForEach(markers) { marker in
+                        if let point = proxy.convert(marker.coordinate, to: .local) {
+                            CreatureMarkerView(name: marker.name, speciesId: marker.speciesId)
+                                .position(point)
+                        }
+                    }
+                }
+                .onMapCameraChange(frequency: .continuous) { _ in
+                    mapCameraTick &+= 1
+                }
+                .ignoresSafeArea()
             }
-            .mapStyle(.standard(elevation: .flat, pointsOfInterest: .excludingAll))
-            .grayscale(1.0)   // 모노톤(흑백) 지도 — 지도 레이어만, UI 오버레이는 색 유지
-            .mapControls {
-                MapUserLocationButton()
-                MapCompass()
-            }
-            .ignoresSafeArea()
 
             VStack(alignment: .leading, spacing: 0) {
                 titleBar
@@ -133,7 +142,7 @@ public struct RootView: View {
                 }
             }
         }
-        .padding(.bottom, 116)   // 셸 플로팅 하단바 위로 띄움
+        .padding(.bottom, 96)   // GNB(바닥8+높이58=66) 위로 30px
     }
 
     // MARK: 로드
@@ -245,8 +254,17 @@ struct CreatureCardItem: Identifiable {
 // MARK: - 번들 이미지 존재 확인 (loose PNG, iOS만)
 
 enum HomeAssets {
-    static func hasMarker(_ speciesId: String) -> Bool { exists("marker-\(speciesId)") }
-    static func hasCard(_ speciesId: String) -> Bool { exists("card-\(speciesId)") }
+    /// 마커 원 안에 넣을 생물 이미지 (카드플립 GameAssets에서 가져온 creature-<id>).
+    static func creatureImageName(_ speciesId: String) -> String? {
+        exists("creature-\(speciesId)") ? "creature-\(speciesId)" : nil
+    }
+
+    /// 카드 이미지 — 전용 card-<id> 우선, 없으면 creature-<id>.
+    static func cardImageName(_ speciesId: String) -> String? {
+        if exists("card-\(speciesId)") { return "card-\(speciesId)" }
+        if exists("creature-\(speciesId)") { return "creature-\(speciesId)" }
+        return nil
+    }
 
     #if canImport(UIKit)
     private static func exists(_ name: String) -> Bool { UIImage(named: name, in: .module, with: nil) != nil }
@@ -262,12 +280,20 @@ struct CreatureMarkerView: View {
     let speciesId: String
 
     var body: some View {
-        VStack(spacing: -6) {
-            markerIcon
-                .frame(width: 76, height: 76)
+        VStack(spacing: -4) {
+            ZStack {
+                Circle()
+                    .fill(CatureColor.surface)
+                    .frame(width: 54, height: 54)
+                    .shadow(color: .black.opacity(0.28), radius: 4, y: 1)
+                creatureImage
+                Circle()
+                    .stroke(CatureColor.lime, lineWidth: 3)
+                    .frame(width: 54, height: 54)
+            }
 
             Text(name)
-                .font(.system(size: 12.3, weight: .medium))
+                .font(.system(size: 12.3, weight: .semibold))
                 .foregroundStyle(CatureColor.onFab)
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
@@ -276,7 +302,7 @@ struct CreatureMarkerView: View {
                 .padding(.top, 4)
                 .background {
                     MarkerLabelShape()
-                        .fill(CatureColor.fab.opacity(0.82))
+                        .fill(CatureColor.ink.opacity(0.9))
                         .frame(width: 62, height: 31)
                 }
         }
@@ -285,22 +311,20 @@ struct CreatureMarkerView: View {
         .accessibilityLabel("\(name) 발견 위치")
     }
 
+    // 원 안 = 생물 이미지(있으면), 없으면 이름 첫 글자 (발바닥 대체)
     @ViewBuilder
-    private var markerIcon: some View {
-        if HomeAssets.hasMarker(speciesId) {
-            Image("marker-\(speciesId)", bundle: .module)
+    private var creatureImage: some View {
+        if let asset = HomeAssets.creatureImageName(speciesId) {
+            Image(asset, bundle: .module)
                 .resizable()
-                .scaledToFit()
+                .scaledToFill()
+                .frame(width: 46, height: 46)
+                .clipShape(Circle())
         } else {
-            ZStack {
-                Circle()
-                    .fill(CatureColor.fab)
-                    .frame(width: 46, height: 46)
-                    .shadow(color: .black.opacity(0.22), radius: 3, y: 1)
-                Image(systemName: "pawprint.fill")
-                    .font(.system(size: 19, weight: .bold))
-                    .foregroundStyle(CatureColor.onFab)
-            }
+            Text(String(name.prefix(1)))
+                .font(.system(size: 22, weight: .bold))
+                .foregroundStyle(CatureColor.textPrimary)
+                .frame(width: 46, height: 46)
         }
     }
 }
@@ -409,8 +433,8 @@ struct AnimalCard: View {
 
             Spacer(minLength: 0)
 
-            if HomeAssets.hasCard(item.speciesId) {
-                Image("card-\(item.speciesId)", bundle: .module)
+            if let asset = HomeAssets.cardImageName(item.speciesId) {
+                Image(asset, bundle: .module)
                     .resizable()
                     .scaledToFill()
                     .frame(width: 101, height: 104)
