@@ -14,10 +14,10 @@ import ARFeature
 enum AppEnvironment {
 
     // MARK: 공유 로컬 저장 (경로 A)
-    // 홈 데모 3종(고양이/닭/느티나무)을 init에서 동기 시드(없으면 추가) → 홈 로드 전에 데이터 존재.
+    // 홈 데모(잠실/상수/세종 장소별)를 init에서 교체 시드 → 기존 기록 초기화. (데모 모드)
     static let species: any SpeciesRepository = LocalSpeciesRepository(species: SampleData.species)
-    static let sightings: any SightingRepository = LocalSightingRepository(ensure: SampleData.demoSightings)
-    static let collection: any CollectionRepository = LocalCollectionRepository(ensure: SampleData.demoEntries)
+    static let sightings: any SightingRepository = LocalSightingRepository(resetTo: SampleData.demoSightings)
+    static let collection: any CollectionRepository = LocalCollectionRepository(resetTo: SampleData.demoEntries)
     static let profile: any ProfileRepository = LocalProfileRepository()
 
     // MARK: 공유 위치 (발견·홈이 같은 CLLocationManager 사용 → 권한 1회)

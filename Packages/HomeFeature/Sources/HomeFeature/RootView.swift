@@ -28,10 +28,12 @@ public struct RootView: View {
             span: MKCoordinateSpan(latitudeDelta: 0.04, longitudeDelta: 0.04)
         )
     )
-    @State private var markers: [CreatureMapMarker] = []
-    @State private var cards: [CreatureCardItem] = []
-    @State private var discoveredCount = 0
+    @State private var allMarkers: [CreatureMapMarker] = []
+    @State private var allCards: [CreatureCardItem] = []
     @State private var selectedCardID: String?
+    @State private var selectedPlaceID: String?            // nil = Nearby(현재 위치 근처)
+    @State private var currentCoordinate: CLLocationCoordinate2D?
+    @State private var showComingSoon = false
     @State private var mapCameraTick = 0   // 카메라 변할 때 컬러 마커 오버레이 재배치 트리거
 
     public init(
@@ -57,7 +59,7 @@ public struct RootView: View {
                 .overlay {
                     // 컬러 마커 — grayscale 밖 오버레이에 좌표변환으로 배치(지도는 흑백, 마커만 컬러)
                     let _ = mapCameraTick   // 카메라 변경 시 재계산 트리거
-                    ForEach(markers) { marker in
+                    ForEach(visibleMarkers) { marker in
                         if let point = proxy.convert(marker.coordinate, to: .local) {
                             CreatureMarkerView(name: marker.name, speciesId: marker.speciesId)
                                 .position(point)
@@ -90,7 +92,12 @@ public struct RootView: View {
                 Spacer(minLength: 0)
                 cardRail
             }
+
+            if showComingSoon {
+                ComingSoonPopup { showComingSoon = false }
+            }
         }
+        .animation(.easeInOut(duration: 0.2), value: showComingSoon)
         .task { await load() }
     }
 
@@ -111,13 +118,72 @@ public struct RootView: View {
     private var filterRail: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 5) {
-                CircleButton(systemName: "plus")
-                FilterChip(title: "Nearby", systemName: "mappin.and.ellipse", count: nil, isSelected: true)
-                FilterChip(title: "Home", systemName: nil, count: max(discoveredCount, 3), isSelected: false)
-                FilterChip(title: "Office", systemName: nil, count: 6, isSelected: false)
-                FilterChip(title: "Addxd", systemName: nil, count: 1, isSelected: false)
+                Button { showComingSoon = true } label: {
+                    CircleButton(systemName: "plus")
+                }
+                .buttonStyle(.plain)
+
+                Button { selectPlace(nil) } label: {
+                    FilterChip(title: "Nearby", systemName: "mappin.and.ellipse", count: nil, isSelected: selectedPlaceID == nil)
+                }
+                .buttonStyle(.plain)
+
+                ForEach(SampleData.demoPlaces) { place in
+                    Button { selectPlace(place.id) } label: {
+                        FilterChip(title: place.title, systemName: nil, count: placeCount(place.id), isSelected: selectedPlaceID == place.id)
+                    }
+                    .buttonStyle(.plain)
+                }
             }
             .padding(.horizontal, CatureSpacing.md)
+        }
+    }
+
+    // MARK: 장소 필터 (근접 반경 내 발견만 표시 + 지도 이동)
+
+    private static let placeRadiusMeters: Double = 3000
+
+    private func markersNear(_ center: CLLocationCoordinate2D) -> [CreatureMapMarker] {
+        let origin = CLLocation(latitude: center.latitude, longitude: center.longitude)
+        return allMarkers.filter {
+            CLLocation(latitude: $0.coordinate.latitude, longitude: $0.coordinate.longitude)
+                .distance(from: origin) <= Self.placeRadiusMeters
+        }
+    }
+
+    private func placeCenter(_ id: String?) -> CLLocationCoordinate2D? {
+        if let id, let place = SampleData.demoPlaces.first(where: { $0.id == id }) {
+            return CLLocationCoordinate2D(latitude: place.latitude, longitude: place.longitude)
+        }
+        return currentCoordinate   // Nearby
+    }
+
+    private func placeCount(_ id: String) -> Int {
+        guard let center = placeCenter(id) else { return 0 }
+        return markersNear(center).count
+    }
+
+    private var visibleMarkers: [CreatureMapMarker] {
+        guard let center = placeCenter(selectedPlaceID) else { return [] }
+        return markersNear(center)
+    }
+
+    private var visibleCards: [CreatureCardItem] {
+        let ids = Set(visibleMarkers.map(\.id))
+        return allCards.filter { ids.contains($0.id) }
+    }
+
+    private func selectPlace(_ id: String?) {
+        selectedPlaceID = id
+        guard let center = placeCenter(id) else {
+            selectedCardID = nil
+            return
+        }
+        selectedCardID = markersNear(center).first?.id
+        withAnimation {
+            cameraPosition = .region(
+                MKCoordinateRegion(center: center, span: MKCoordinateSpan(latitudeDelta: 0.012, longitudeDelta: 0.012))
+            )
         }
     }
 
@@ -126,8 +192,8 @@ public struct RootView: View {
     @ViewBuilder
     private var cardRail: some View {
         Group {
-            if cards.isEmpty {
-                Text("아직 지도에 표시할 발견이 없어요. 카메라로 첫 발견을 시작해요!")
+            if visibleCards.isEmpty {
+                Text("이 근처엔 아직 발견이 없어요. 장소를 눌러 이동해 보세요!")
                     .font(CatureFont.callout)
                     .foregroundStyle(CatureColor.textSecondary)
                     .multilineTextAlignment(.center)
@@ -139,7 +205,7 @@ public struct RootView: View {
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 11) {
-                        ForEach(cards) { item in
+                        ForEach(visibleCards) { item in
                             Button {
                                 select(item)
                             } label: {
@@ -170,7 +236,6 @@ public struct RootView: View {
 
         let speciesById = Dictionary(species.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         let discoveredIds = Set(entries.filter(\.discovered).map(\.speciesId))
-        discoveredCount = discoveredIds.count
 
         var builtMarkers: [CreatureMapMarker] = []
         var builtCards: [CreatureCardItem] = []
@@ -193,41 +258,31 @@ public struct RootView: View {
             )
         }
 
-        markers = builtMarkers
-        cards = builtCards
-        selectedCardID = builtCards.first?.id
-        if !builtMarkers.isEmpty {
-            // 핀들의 무게중심에 맞춰 3개가 화면 중앙에 모이게(상단 타이틀/하단 카드 안 가리게).
-            let lat = builtMarkers.map(\.coordinate.latitude).reduce(0, +) / Double(builtMarkers.count)
-            let lon = builtMarkers.map(\.coordinate.longitude).reduce(0, +) / Double(builtMarkers.count)
-            withAnimation {
-                cameraPosition = .region(
-                    MKCoordinateRegion(
-                        center: CLLocationCoordinate2D(latitude: lat, longitude: lon),
-                        span: MKCoordinateSpan(latitudeDelta: 0.011, longitudeDelta: 0.011)
-                    )
+        allMarkers = builtMarkers
+        allCards = builtCards
+
+        // 위치(권한 대기 가능) → 카드 거리 실측 + Nearby 기준점
+        if let sample = await locationService.currentLocation() {
+            currentCoordinate = CLLocationCoordinate2D(latitude: sample.latitude, longitude: sample.longitude)
+            let user = CLLocation(latitude: sample.latitude, longitude: sample.longitude)
+            let coordByID = Dictionary(uniqueKeysWithValues: builtMarkers.map { ($0.id, $0.coordinate) })
+            allCards = builtCards.map { card in
+                guard let coord = coordByID[card.id] else { return card }
+                let meters = Int(user.distance(from: CLLocation(latitude: coord.latitude, longitude: coord.longitude)).rounded())
+                return CreatureCardItem(
+                    id: card.id, speciesId: card.speciesId, english: card.english, korean: card.korean,
+                    distanceText: meters > 0 ? Self.formatDistance(meters) : "바로 근처",
+                    discovered: card.discovered
                 )
             }
         }
-
-        // 위치는 이후에(권한 대기 가능) — 카드 거리만 실측으로 갱신. 지도 중심은 핀 유지.
-        guard let sample = await locationService.currentLocation() else { return }
-        let user = CLLocation(latitude: sample.latitude, longitude: sample.longitude)
-        let coordByID = Dictionary(uniqueKeysWithValues: builtMarkers.map { ($0.id, $0.coordinate) })
-        cards = builtCards.map { card in
-            guard let coord = coordByID[card.id] else { return card }
-            let meters = Int(user.distance(from: CLLocation(latitude: coord.latitude, longitude: coord.longitude)).rounded())
-            return CreatureCardItem(
-                id: card.id, speciesId: card.speciesId, english: card.english, korean: card.korean,
-                distanceText: meters > 0 ? Self.formatDistance(meters) : "바로 근처",
-                discovered: card.discovered
-            )
-        }
+        // 초기 선택: Nearby(현재 위치 근처)
+        selectPlace(nil)
     }
 
     private func select(_ item: CreatureCardItem) {
         selectedCardID = item.id
-        guard let marker = markers.first(where: { $0.id == item.id }) else { return }
+        guard let marker = allMarkers.first(where: { $0.id == item.id }) else { return }
         withAnimation {
             cameraPosition = .region(
                 MKCoordinateRegion(center: marker.coordinate, span: MKCoordinateSpan(latitudeDelta: 0.006, longitudeDelta: 0.006))
@@ -477,6 +532,50 @@ struct AnimalCard: View {
         .background(isActive ? CatureColor.lime : CatureColor.surface)
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .shadow(color: CatureColor.textSecondary.opacity(isActive ? 0.05 : 0.04), radius: isActive ? 6 : 2)
+    }
+}
+
+// MARK: - 준비중 팝업 (Cature 스타일)
+
+struct ComingSoonPopup: View {
+    let onClose: () -> Void
+
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.25)
+                .ignoresSafeArea()
+                .onTapGesture { onClose() }
+
+            VStack(spacing: CatureSpacing.md) {
+                ZStack {
+                    Circle()
+                        .fill(CatureColor.lime)
+                        .frame(width: 56, height: 56)
+                    Image(systemName: "hammer.fill")
+                        .font(.system(size: 22, weight: .semibold))
+                        .foregroundStyle(CatureColor.ink)
+                }
+
+                VStack(spacing: 6) {
+                    Text("준비중입니다")
+                        .font(CatureFont.headline)
+                        .foregroundStyle(CatureColor.textPrimary)
+                    Text("곧 새로운 장소를 추가할 수 있어요.")
+                        .font(CatureFont.callout)
+                        .foregroundStyle(CatureColor.textSecondary)
+                        .multilineTextAlignment(.center)
+                }
+
+                Button("확인") { onClose() }
+                    .buttonStyle(.caturePrimary)
+            }
+            .padding(CatureSpacing.lg)
+            .frame(maxWidth: 280)
+            .background(CatureColor.surface, in: RoundedRectangle(cornerRadius: CatureRadius.lg, style: .continuous))
+            .shadow(color: .black.opacity(0.2), radius: 20, y: 8)
+            .padding(CatureSpacing.xl)
+        }
+        .transition(.opacity)
     }
 }
 

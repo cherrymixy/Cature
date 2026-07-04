@@ -15,6 +15,13 @@ public enum SampleData {
         Species(id: "ladybug",   nameKo: "무당벌레",  category: "곤충",   usdzAsset: nil,              thumbnail: "ladybug"),
         Species(id: "chicken",   nameKo: "닭",        category: "조류",   usdzAsset: nil,              thumbnail: "chicken"),
         Species(id: "tree",      nameKo: "느티나무",  category: "식물",   usdzAsset: nil,              thumbnail: "tree"),
+        Species(id: "duck",      nameKo: "청둥오리",  category: "조류",   usdzAsset: nil,              thumbnail: "duck"),
+        Species(id: "ant",       nameKo: "개미",      category: "곤충",   usdzAsset: nil,              thumbnail: "ant"),
+        Species(id: "bee",       nameKo: "벌",        category: "곤충",   usdzAsset: nil,              thumbnail: "bee"),
+        Species(id: "fly",       nameKo: "파리",      category: "곤충",   usdzAsset: nil,              thumbnail: "fly"),
+        Species(id: "cactus",    nameKo: "선인장",    category: "식물",   usdzAsset: nil,              thumbnail: "cactus"),
+        Species(id: "dracaena",  nameKo: "드라세나",  category: "식물",   usdzAsset: nil,              thumbnail: "dracaena"),
+        Species(id: "mushroom",  nameKo: "야생버섯",  category: "균류",   usdzAsset: nil,              thumbnail: "mushroom"),
     ]
 
     /// MockLLMService.identify 고정 후보 (플레이북 S1: 카멜레온 0.78 / 도마뱀 0.24 / 버섯 0.02).
@@ -53,18 +60,45 @@ public enum SampleData {
         )
     }
 
-    /// 홈 지도 데모용 발견 3건 (임의 위치: 서울 도심 · 고양이/닭/느티나무).
-    /// AppEnvironment가 저장소에 없으면 시드 → 홈에 핀 3 + 카드 3. 실제 발견 플로우는 그대로.
+    // MARK: - 홈 지도 데모 (장소 필터)
+
+    /// 홈 지도 필터 장소. 각 장소 근처에 데모 발견이 있고, 칩 탭 시 그 장소로 이동·필터.
+    public struct DemoPlace: Identifiable, Sendable {
+        public let id: String
+        public let title: String
+        public let latitude: Double
+        public let longitude: Double
+        public init(id: String, title: String, latitude: Double, longitude: Double) {
+            self.id = id; self.title = title; self.latitude = latitude; self.longitude = longitude
+        }
+    }
+
+    public static let demoPlaces: [DemoPlace] = [
+        DemoPlace(id: "home",   title: "Home",   latitude: 37.5133, longitude: 127.1000),  // 잠실
+        DemoPlace(id: "office", title: "Office", latitude: 37.5476, longitude: 126.9227),  // 상수역
+        DemoPlace(id: "addxd",  title: "Addxd",  latitude: 36.4808, longitude: 127.2890),  // 세종
+    ]
+
+    private static func demoDate(_ offset: Int) -> Date {
+        Date(timeIntervalSince1970: 1_720_000_000 + Double(offset) * 3600)
+    }
+
+    /// 데모 발견: Home(잠실) 4 · Office(상수역) 6 · Addxd(세종) 1 = 11건. 모두 이미지 있는 종.
     public static let demoSightings: [Sighting] = [
-        Sighting(id: "demo-cat",     speciesId: "cat",     photoPath: "",
-                 latitude: 37.5663, longitude: 126.9782, locationName: "서울시청",
-                 createdAt: Date(timeIntervalSince1970: 1_720_000_000)),
-        Sighting(id: "demo-chicken", speciesId: "chicken", photoPath: "",
-                 latitude: 37.5675, longitude: 126.9772, locationName: "광화문",
-                 createdAt: Date(timeIntervalSince1970: 1_720_003_600)),
-        Sighting(id: "demo-tree",    speciesId: "tree",    photoPath: "",
-                 latitude: 37.5651, longitude: 126.9764, locationName: "덕수궁",
-                 createdAt: Date(timeIntervalSince1970: 1_720_007_200)),
+        // Home — 잠실 (4)
+        Sighting(id: "home-cat",     speciesId: "cat",     photoPath: "", latitude: 37.5142, longitude: 127.1008, locationName: "잠실", createdAt: demoDate(0)),
+        Sighting(id: "home-chicken", speciesId: "chicken", photoPath: "", latitude: 37.5126, longitude: 127.0987, locationName: "잠실", createdAt: demoDate(1)),
+        Sighting(id: "home-duck",    speciesId: "duck",    photoPath: "", latitude: 37.5148, longitude: 127.0994, locationName: "잠실", createdAt: demoDate(2)),
+        Sighting(id: "home-ladybug", speciesId: "ladybug", photoPath: "", latitude: 37.5121, longitude: 127.1013, locationName: "잠실", createdAt: demoDate(3)),
+        // Office — 상수역 (6)
+        Sighting(id: "office-chameleon", speciesId: "chameleon", photoPath: "", latitude: 37.5485, longitude: 126.9235, locationName: "상수역", createdAt: demoDate(4)),
+        Sighting(id: "office-tree",      speciesId: "tree",      photoPath: "", latitude: 37.5468, longitude: 126.9216, locationName: "상수역", createdAt: demoDate(5)),
+        Sighting(id: "office-ant",       speciesId: "ant",       photoPath: "", latitude: 37.5491, longitude: 126.9210, locationName: "상수역", createdAt: demoDate(6)),
+        Sighting(id: "office-bee",       speciesId: "bee",       photoPath: "", latitude: 37.5463, longitude: 126.9241, locationName: "상수역", createdAt: demoDate(7)),
+        Sighting(id: "office-fly",       speciesId: "fly",       photoPath: "", latitude: 37.5481, longitude: 126.9251, locationName: "상수역", createdAt: demoDate(8)),
+        Sighting(id: "office-cactus",    speciesId: "cactus",    photoPath: "", latitude: 37.5471, longitude: 126.9203, locationName: "상수역", createdAt: demoDate(9)),
+        // Addxd — 세종 (1)
+        Sighting(id: "addxd-mushroom",   speciesId: "mushroom",  photoPath: "", latitude: 36.4812, longitude: 127.2896, locationName: "세종", createdAt: demoDate(10)),
     ]
 
     /// demoSightings에 대응하는 수집 엔트리(발견=보유중 처리).
