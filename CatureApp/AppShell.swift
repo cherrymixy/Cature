@@ -2,8 +2,8 @@
 //  Cature — 하단 3탭 셸 + 카메라 FAB. 로직 없음(네비게이션 상태만).
 //
 //  ▼ 라우팅 교체 지점 (S9): 아래 placeholder를 각 Feature 루트뷰로 바꾼다.
-//     홈     → HomeFeature.RootView       (찬희)
-//     기능   → MinigameFeature.RootView   (예준)
+//     홈     → HomeFeature.RootView       (예준)
+//     기능   → MinigameFeature.RootView   (찬희)
 //     마이   → DexFeature.RootView        (찬희)
 //     카메라 → DiscoveryFeature.RootView  (승아)
 

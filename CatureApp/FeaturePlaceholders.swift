@@ -28,11 +28,11 @@ private struct TabPlaceholder: View {
 }
 
 struct HomeTabPlaceholder: View {
-    var body: some View { TabPlaceholder(title: "홈 · 지도", swapNote: "→ HomeFeature.RootView (찬희)") }
+    var body: some View { TabPlaceholder(title: "홈 · 지도", swapNote: "→ HomeFeature.RootView (예준)") }
 }
 
 struct FeatureTabPlaceholder: View {
-    var body: some View { TabPlaceholder(title: "기능 · 미니게임", swapNote: "→ MinigameFeature.RootView (예준)") }
+    var body: some View { TabPlaceholder(title: "기능 · 미니게임", swapNote: "→ MinigameFeature.RootView (찬희)") }
 }
 
 struct MyTabPlaceholder: View {
