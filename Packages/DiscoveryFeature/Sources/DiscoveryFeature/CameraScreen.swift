@@ -45,8 +45,7 @@ struct CameraScreen: View {
             .padding(.horizontal, CatureSpacing.md)
             .padding(.top, CatureSpacing.xs)
 
-            Spacer()
-
+            // 힌트 pill — Figma 93-331: 상단(뒤로 버튼 아래)
             Text(controller.isCameraAvailable ? "생물을 화면에 담아 보세요!" : "사진 보관함에서 골라 보세요")
                 .font(.system(size: 16))
                 .tracking(-0.8)
@@ -55,7 +54,9 @@ struct CameraScreen: View {
                 .padding(.vertical, 9)
                 .background(Color.white.opacity(0.85), in: Capsule())
                 .overlay(Capsule().stroke(.black.opacity(0.05)))
-                .padding(.bottom, CatureSpacing.lg)
+                .padding(.top, CatureSpacing.sm)
+
+            Spacer()
 
             Button { shutterTapped() } label: {
                 ZStack {
