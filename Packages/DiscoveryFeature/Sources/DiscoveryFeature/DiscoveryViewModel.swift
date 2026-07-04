@@ -19,6 +19,9 @@ enum DiscoveryStep {
 final class DiscoveryViewModel {
     private(set) var step: DiscoveryStep = .camera
 
+    /// 첫 촬영을 취소했을 때 발견 플로우를 닫는 콜백(중간 카메라 페이지가 없으므로).
+    var onDismiss: (() -> Void)?
+
     private let deps: DiscoveryDependencies
     private var lastPhoto: URL?
     private var lastLocation: LocationSample?
@@ -40,7 +43,8 @@ final class DiscoveryViewModel {
             lastCandidates = candidates
             step = candidates.isEmpty ? .notFound : .candidates(candidates)
         } catch {
-            step = .camera   // 취소/실패 → 카메라로
+            // 촬영 취소/실패: 첫 진입(.camera)이면 발견 닫기, 재촬영이면 이전 화면 유지.
+            if case .camera = step { onDismiss?() }
         }
     }
 
@@ -85,10 +89,6 @@ final class DiscoveryViewModel {
             achievement: CollectionMath.achievement(discoveredCount: discovered, totalSpecies: total),
             canExperience: species?.canExperience ?? false
         )
-    }
-
-    func reset() {
-        step = .camera
     }
 
     private static func fallbackCard(_ speciesId: String) -> CoexistCard {
