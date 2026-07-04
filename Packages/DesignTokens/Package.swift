@@ -7,15 +7,8 @@ let package = Package(
     products: [
         .library(name: "DesignTokens", targets: ["DesignTokens"]),
     ],
-    dependencies: [
-        .package(path: "../CorePackage"),
-    ],
     targets: [
-        .target(
-            name: "DesignTokens",
-            dependencies: [
-                .product(name: "CorePackage", package: "CorePackage"),
-            ]
-        ),
+        // 순수 디자인 레이어 — 도메인(Core)에 의존하지 않는다(의존 0).
+        .target(name: "DesignTokens"),
     ]
 )
