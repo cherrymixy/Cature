@@ -75,7 +75,8 @@ struct RootView: View {
         }
     }
 
-    // MARK: 하단 바 — 알약형 탭(확장 시 숨김) + 스피드다이얼 FAB
+    // MARK: 하단 바 — ⚠️ 임시 디자인. 최종 하단바 소유 = 예준(docs/contracts.md §6). 예준 확정 시 이 바 제거 + 콜백 연결.
+    //        알약형 탭(확장 시 숨김) + 스피드다이얼 FAB
     private var bottomBar: some View {
         HStack(alignment: .bottom, spacing: CatureSpacing.sm) {
             if !fabExpanded {
