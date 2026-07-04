@@ -1,16 +1,519 @@
 //  MinigameFeature.swift
-//  Cature — 미니게임: Catch Your Card (찬희).
+//  Cature — 미니게임 탭. Figma "Mini Game" 선택 메뉴 → Catch the Pair(카드 매칭) 진입.
+//
+//  화면 구성(Figma 83:304, 393×852 프레임 기준):
+//   · 제목 "Mini Game" + 안내문
+//   · 게임 카드 2장 — Catch the Pair!(같은 생물 카드 찾기) / True or False(공존 퀴즈)
+//   · 잠금 카드 2장 — Lv 100 / Lv 200 요구
+//  하단바·상태바는 앱 셸(AppShell)이 제공하므로 여기선 콘텐츠만 그린다.
 
 import CorePackage
 import Foundation
 import SwiftUI
 
+// MARK: - 진입점
+
 public struct RootView: View {
-    @StateObject private var viewModel: CatchYourCardViewModel
+    private let collectionRepository: any CollectionRepository
+    private let speciesRepository: any SpeciesRepository
 
     public init(
         collectionRepository: any CollectionRepository = MockCollectionRepository(),
         speciesRepository: any SpeciesRepository = MockSpeciesRepository()
+    ) {
+        self.collectionRepository = collectionRepository
+        self.speciesRepository = speciesRepository
+    }
+
+    public var body: some View {
+        MiniGameMenuView(
+            collectionRepository: collectionRepository,
+            speciesRepository: speciesRepository
+        )
+    }
+}
+
+// MARK: - 게임 선택 메뉴 (Figma 83:304)
+
+struct MiniGameMenuView: View {
+    let collectionRepository: any CollectionRepository
+    let speciesRepository: any SpeciesRepository
+
+    @State private var showCatchPair = false
+    @State private var showComingSoon = false
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                header
+                gamesGrid
+                    .padding(.top, 56)
+            }
+            .padding(.horizontal, 25)
+            .padding(.top, 56)       // 타이틀이 상단에 붙지 않도록 아래로
+            .padding(.bottom, 120)   // 플로팅 하단바에 카드가 가리지 않도록
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .background(Color.white)
+        .alert("준비 중이에요", isPresented: $showComingSoon) {
+            Button("확인", role: .cancel) {}
+        } message: {
+            Text("True or False 퀴즈는 곧 만나볼 수 있어요.")
+        }
+        #if os(iOS)
+        .fullScreenCover(isPresented: $showCatchPair) { catchPairFlow }
+        #else
+        .sheet(isPresented: $showCatchPair) { catchPairFlow }
+        #endif
+    }
+
+    // Catch the Pair 흐름: 시작 전 안내 → 게임. 앱 탭바 위를 덮는 전체화면.
+    private var catchPairFlow: some View {
+        CatchPairFlowView(
+            collectionRepository: collectionRepository,
+            speciesRepository: speciesRepository,
+            onClose: { showCatchPair = false }
+        )
+    }
+
+    // MARK: 헤더
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 13) {
+            Text("Mini Game")
+                .font(.system(size: 28, weight: .medium))
+                .tracking(-1.12)
+                .foregroundStyle(.black)   // 좌측 끝을 본문과 정렬
+
+            Text("발견한 생물과 함께 지내는 방법을\n간단한 게임으로 확인해요")
+                .font(.system(size: 16, weight: .medium))
+                .tracking(-0.64)
+                .lineSpacing(6)
+                .foregroundStyle(.black.opacity(0.3))
+        }
+    }
+
+    // MARK: 카드 그리드 (2 × 2, 균등 폭)
+
+    private let columns = [
+        GridItem(.flexible(), spacing: 11),
+        GridItem(.flexible(), spacing: 11),
+    ]
+
+    private var gamesGrid: some View {
+        LazyVGrid(columns: columns, spacing: 11) {
+            Button {
+                showCatchPair = true
+            } label: {
+                PairGameCard()
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                showComingSoon = true
+            } label: {
+                QuizGameCard()
+            }
+            .buttonStyle(.plain)
+
+            LockedGameCard(levelLabel: "Lv 100 요구")
+            LockedGameCard(levelLabel: "Lv 200 요구")
+        }
+    }
+}
+
+// MARK: - 게임 카드: Catch the Pair!
+
+struct PairGameCard: View {
+    var body: some View {
+        GameCardContent(
+            icon: { PairMarkIcon() },
+            title: "Catch the\nPair!",
+            copy: "같은 생물 카드를\n찾는 게임"
+        )
+    }
+}
+
+// MARK: - 게임 카드: True or False
+
+struct QuizGameCard: View {
+    var body: some View {
+        GameCardContent(
+            icon: { TrueFalseIcon() },
+            title: "True or\nFalse",
+            copy: "맞는 공존 행동을\n고르는 퀴즈"
+        )
+    }
+}
+
+/// 게임 카드 공통 뼈대(아이콘 + 타이틀 + 설명). Figma game-card 스타일.
+struct GameCardContent<Icon: View>: View {
+    @ViewBuilder let icon: () -> Icon
+    let title: String
+    let copy: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            icon()
+                .frame(height: 31, alignment: .topLeading)
+                .padding(.top, 27)
+
+            Text(title)
+                .font(.system(size: 24, weight: .semibold))
+                .tracking(-1.68)
+                .lineSpacing(2)
+                .foregroundStyle(.black)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 11)
+
+            Text(copy)
+                .font(.system(size: 16, weight: .medium))
+                .tracking(-0.64)
+                .lineSpacing(6)
+                .foregroundStyle(.black.opacity(0.3))
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 8)
+
+            Spacer(minLength: 0)
+        }
+        .padding(.leading, 20)
+        .padding(.trailing, 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .aspectRatio(166.0 / 220.0, contentMode: .fit)
+        .background(Color(white: 0.898).opacity(0.44))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(.black.opacity(0.06), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .shadow(color: .black.opacity(0.09), radius: 15, y: 4)
+    }
+}
+
+// MARK: - 잠금 카드 (Lv 요구)
+
+struct LockedGameCard: View {
+    let levelLabel: String
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: 16, style: .continuous)
+            .fill(
+                LinearGradient(
+                    colors: [
+                        Color(white: 0.941),   // #f0f0f0
+                        Color(white: 0.906),   // #e7e7e7
+                        Color(white: 0.898),   // #e5e5e5
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+            .frame(maxWidth: .infinity)
+            .aspectRatio(166.0 / 220.0, contentMode: .fit)
+            .overlay {
+                VStack(spacing: 12) {
+                    Image(systemName: "lock.fill")
+                        .font(.system(size: 34, weight: .regular))
+                        .foregroundStyle(.black.opacity(0.25))
+
+                    Text(levelLabel)
+                        .font(.system(size: 16, weight: .medium))
+                        .tracking(-0.64)
+                        .foregroundStyle(.black.opacity(0.2))
+                }
+            }
+            .accessibilityElement()
+            .accessibilityLabel("\(levelLabel), 잠김")
+    }
+}
+
+// MARK: - 아이콘: 초록 카드 한 쌍 (Catch the Pair)
+
+struct PairMarkIcon: View {
+    private static let green = Color(red: 0.310, green: 0.706, blue: 0.439)     // #4fb470
+    private static let border = Color(red: 0.929, green: 0.953, blue: 0.902)    // #edf3e6
+
+    var body: some View {
+        ZStack(alignment: .topLeading) {
+            RoundedRectangle(cornerRadius: 2.6, style: .continuous)
+                .fill(Self.green)
+                .frame(width: 13.8, height: 22)
+                .offset(x: 14, y: 2)
+
+            RoundedRectangle(cornerRadius: 2.6, style: .continuous)
+                .fill(Self.green)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 2.6, style: .continuous)
+                        .strokeBorder(Self.border, lineWidth: 2)
+                )
+                .frame(width: 13.8, height: 22)
+                .rotationEffect(.degrees(-21.67))
+                .offset(x: 1, y: 1)
+        }
+        .frame(width: 30, height: 26, alignment: .topLeading)
+    }
+}
+
+// MARK: - 아이콘: O / X (True or False)
+
+struct TrueFalseIcon: View {
+    var body: some View {
+        ZStack(alignment: .topLeading) {
+            TrueMark()
+                .frame(width: 31, height: 31)
+
+            FalseMark()
+                .frame(width: 27, height: 27)
+                .offset(x: 19, y: 1)
+        }
+        .frame(width: 49, height: 31, alignment: .topLeading)
+    }
+}
+
+private struct TrueMark: View {
+    private static let fill = Color(white: 0.894)                               // #E4E4E4
+    private static let ring = Color(red: 0.953, green: 0.953, blue: 0.953)      // #F3F3F3
+    private static let blue = Color(red: 0.196, green: 0.400, blue: 1.0)        // #3266FF
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(Self.fill)
+                .overlay(Circle().strokeBorder(Self.ring, lineWidth: 2))
+                .padding(1)
+
+            Circle()
+                .strokeBorder(Self.blue, lineWidth: 2.43)
+                .frame(width: 11, height: 11)
+        }
+    }
+}
+
+private struct FalseMark: View {
+    private static let fill = Color(white: 0.894)                               // #E4E4E4
+    private static let red = Color(red: 1.0, green: 0.263, blue: 0.263)         // #FF4343
+
+    var body: some View {
+        ZStack {
+            Circle().fill(Self.fill)
+
+            Path { path in
+                path.move(to: CGPoint(x: 9, y: 9))
+                path.addLine(to: CGPoint(x: 18, y: 18))
+                path.move(to: CGPoint(x: 9, y: 18))
+                path.addLine(to: CGPoint(x: 18, y: 9))
+            }
+            .stroke(Self.red, style: StrokeStyle(lineWidth: 2.43, lineCap: .round))
+            .frame(width: 27, height: 27)
+        }
+    }
+}
+
+// MARK: - Catch the Pair 흐름 (안내 → 게임)
+
+enum CatchPairRoute: Hashable {
+    case game
+}
+
+struct CatchPairFlowView: View {
+    let collectionRepository: any CollectionRepository
+    let speciesRepository: any SpeciesRepository
+    let onClose: () -> Void
+
+    var body: some View {
+        NavigationStack {
+            CatchPairIntroView(onBack: onClose)
+                .navigationDestination(for: CatchPairRoute.self) { route in
+                    switch route {
+                    case .game:
+                        CatchPairGameView(
+                            collectionRepository: collectionRepository,
+                            speciesRepository: speciesRepository,
+                            onExit: onClose
+                        )
+                    }
+                }
+        }
+    }
+}
+
+// MARK: - 게임 시작 전 안내 (Figma "Catch The Pair")
+
+struct CatchPairIntroView: View {
+    let onBack: () -> Void
+
+    var body: some View {
+        ZStack {
+            Color.white.ignoresSafeArea()
+
+            VStack(spacing: 0) {
+                HStack {
+                    Button(action: onBack) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 20, weight: .medium))
+                            .foregroundStyle(Color(white: 0.42))   // #6B6B6B
+                            .frame(width: 44, height: 44, alignment: .leading)
+                    }
+                    .accessibilityLabel("뒤로가기")
+                    Spacer()
+                }
+                .padding(.leading, 23)
+                .padding(.top, 8)
+
+                Spacer().frame(height: 64)
+
+                Text("Catch The Pair!")
+                    .font(.system(size: 32, weight: .semibold))
+                    .foregroundStyle(.black.opacity(0.9))
+                    .scaleEffect(x: 0.9, anchor: .center)
+
+                Text("같은 생물 카드를 기억해 짝을 맞춰요")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(.black.opacity(0.6))
+                    .padding(.top, 12)
+
+                Spacer().frame(height: 56)
+
+                cardsGrid
+
+                Spacer(minLength: 24)
+
+                NavigationLink(value: CatchPairRoute.game) {
+                    Text("게임 시작하기")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 56)
+                        .background(
+                            Color(white: 0.157),   // #282828
+                            in: RoundedRectangle(cornerRadius: 15.6, style: .continuous)
+                        )
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, 23)
+                .padding(.bottom, 24)
+            }
+        }
+        #if os(iOS)
+        .navigationBarBackButtonHidden(true)
+        .toolbar(.hidden, for: .navigationBar)
+        #endif
+    }
+
+    // 2 × 2 라임 카드
+    private var cardsGrid: some View {
+        VStack(spacing: 12) {
+            HStack(spacing: 12) {
+                IntroCard()
+                IntroCard()
+            }
+            HStack(spacing: 12) {
+                IntroCard()
+                IntroCard()
+            }
+        }
+    }
+}
+
+/// 안내 화면의 뒷면 카드(라임 + 조리개 마크 + Cature).
+struct IntroCard: View {
+    var body: some View {
+        ZStack(alignment: .top) {
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(Color(red: 0.937, green: 0.973, blue: 0.565))   // #eff890
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .strokeBorder(.black.opacity(0.18), lineWidth: 5)
+                )
+
+            VStack(spacing: 6) {
+                CardMarkShape()
+                    .fill(.black)
+                    .frame(width: 29, height: 28.84)
+                Text("Cature")
+                    .font(.system(size: 13.875, weight: .semibold))
+                    .foregroundStyle(.black)
+            }
+            .padding(.top, 27)
+        }
+        .frame(width: 89, height: 109)
+        .accessibilityLabel("카드 뒷면")
+    }
+}
+
+/// Cature 조리개(4-blade) 마크 — card-mark.svg 좌표 그대로.
+struct CardMarkShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        var p = Path()
+
+        // Blade 1
+        p.move(to: CGPoint(x: 4.69247, y: 5.06617))
+        p.addCurve(to: CGPoint(x: 12.6836, y: 2.92495),
+                   control1: CGPoint(x: 6.30788, y: 2.2682),
+                   control2: CGPoint(x: 9.88562, y: 1.30955))
+        p.addLine(to: CGPoint(x: 15.2677, y: 4.41688))
+        p.addLine(to: CGPoint(x: 9.41778, y: 14.5492))
+        p.addLine(to: CGPoint(x: 6.83368, y: 13.0573))
+        p.addCurve(to: CGPoint(x: 4.69247, y: 5.06617),
+                   control1: CGPoint(x: 4.03572, y: 11.4419),
+                   control2: CGPoint(x: 3.07706, y: 7.86413))
+        p.closeSubpath()
+
+        // Blade 2
+        p.move(to: CGPoint(x: 16.1325, y: 6.80713))
+        p.addCurve(to: CGPoint(x: 24.1236, y: 4.66591),
+                   control1: CGPoint(x: 17.7479, y: 4.00916),
+                   control2: CGPoint(x: 21.3256, y: 3.05051))
+        p.addCurve(to: CGPoint(x: 26.2648, y: 12.657),
+                   control1: CGPoint(x: 26.9215, y: 6.28132),
+                   control2: CGPoint(x: 27.8802, y: 9.85907))
+        p.addLine(to: CGPoint(x: 24.7729, y: 15.2411))
+        p.addLine(to: CGPoint(x: 14.6405, y: 9.39122))
+        p.closeSubpath()
+
+        // Blade 3
+        p.move(to: CGPoint(x: 24.4563, y: 23.7748))
+        p.addCurve(to: CGPoint(x: 16.4652, y: 25.916),
+                   control1: CGPoint(x: 22.8409, y: 26.5727),
+                   control2: CGPoint(x: 19.2632, y: 27.5314))
+        p.addLine(to: CGPoint(x: 13.8811, y: 24.4241))
+        p.addLine(to: CGPoint(x: 19.731, y: 14.2917))
+        p.addLine(to: CGPoint(x: 22.3151, y: 15.7837))
+        p.addCurve(to: CGPoint(x: 24.4563, y: 23.7748),
+                   control1: CGPoint(x: 25.1131, y: 17.3991),
+                   control2: CGPoint(x: 26.0717, y: 20.9768))
+        p.closeSubpath()
+
+        // Blade 4
+        p.move(to: CGPoint(x: 13.0574, y: 22.0337))
+        p.addCurve(to: CGPoint(x: 5.06625, y: 24.1749),
+                   control1: CGPoint(x: 11.442, y: 24.8317),
+                   control2: CGPoint(x: 7.86421, y: 25.7903))
+        p.addCurve(to: CGPoint(x: 2.92503, y: 16.1838),
+                   control1: CGPoint(x: 2.26828, y: 22.5595),
+                   control2: CGPoint(x: 1.30963, y: 18.9818))
+        p.addLine(to: CGPoint(x: 4.41696, y: 13.5997))
+        p.addLine(to: CGPoint(x: 14.5493, y: 19.4496))
+        p.closeSubpath()
+
+        let scale = CGAffineTransform(
+            scaleX: rect.width / 29.1896,
+            y: rect.height / 28.8409
+        )
+        return p.applying(scale)
+    }
+}
+
+// MARK: - Catch the Pair 게임 (카드 매칭)
+
+struct CatchPairGameView: View {
+    @StateObject private var viewModel: CatchYourCardViewModel
+    let onExit: () -> Void
+
+    init(
+        collectionRepository: any CollectionRepository,
+        speciesRepository: any SpeciesRepository,
+        onExit: @escaping () -> Void
     ) {
         _viewModel = StateObject(
             wrappedValue: CatchYourCardViewModel(
@@ -18,157 +521,227 @@ public struct RootView: View {
                 speciesRepository: speciesRepository
             )
         )
+        self.onExit = onExit
     }
 
-    public var body: some View {
-        CatchYourCardView(viewModel: viewModel)
+    var body: some View {
+        CatchYourCardView(viewModel: viewModel, onExit: onExit)
             .task {
                 await viewModel.load()
             }
+            #if os(iOS)
+            .navigationBarBackButtonHidden(true)
+            .toolbar(.hidden, for: .navigationBar)
+            #endif
     }
 }
 
+// MARK: - 게임 플레이 화면 (Figma WF_MiniGame 100:1756)
+
 struct CatchYourCardView: View {
     @ObservedObject var viewModel: CatchYourCardViewModel
+    let onExit: () -> Void   // 게임 종료 → 허브로 나가기
+
+    @State private var showExitConfirm = false
 
     private let gridColumns = Array(
         repeating: GridItem(.flexible(), spacing: 12),
         count: 3
     )
 
+    private static let background = Color(white: 0.949)   // #f2f2f2
+
     var body: some View {
         ZStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    header
-                    gameBoard
-                    retryButton
+            Self.background.ignoresSafeArea()
+
+            VStack(spacing: 0) {
+                HStack {
+                    Button {
+                        showExitConfirm = true
+                    } label: {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 20, weight: .medium))
+                            .foregroundStyle(Color(white: 0.42))   // #6B6B6B
+                            .frame(width: 44, height: 44, alignment: .leading)
+                    }
+                    .accessibilityLabel("뒤로 가기")
+                    Spacer()
                 }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 24)
+                .padding(.leading, 30)
+                .padding(.top, 4)
+
+                TimerBar(progress: viewModel.progress)
+                    .padding(.horizontal, 34)
+                    .padding(.top, 6)
+
+                TimeChip(text: viewModel.timeText)
+                    .padding(.top, 15)
+
+                LazyVGrid(columns: gridColumns, spacing: 12) {
+                    ForEach(viewModel.cards) { card in
+                        CatchCardView(card: card) {
+                            viewModel.choose(card)
+                        }
+                    }
+                }
+                .padding(.horizontal, 50)
+                .padding(.top, 30)
+                .accessibilityElement(children: .contain)
+
+                Spacer(minLength: 0)
             }
 
+            // 타임아웃 / 승리 결과 모달 (Figma 117:2652)
             if viewModel.phase.showsOverlay {
-                resultOverlay
+                GameModal(
+                    title: viewModel.phase == .won ? "Clear!" : "Time Out!",
+                    message: viewModel.phase == .won ? "모든 짝을 맞췄어요!" : "시간이 종료되었어요!",
+                    leftTitle: "다시 도전하기",
+                    leftAction: { viewModel.restart() },
+                    rightTitle: "미니게임 화면으로",
+                    rightAction: onExit
+                )
+                .transition(.opacity)
+            } else if showExitConfirm {
+                // 중도 포기 모달
+                GameModal(
+                    title: "그만둘까요?",
+                    message: "지금 나가면 게임이 사라져요",
+                    leftTitle: "계속하기",
+                    leftAction: { showExitConfirm = false },
+                    rightTitle: "미니게임 화면으로",
+                    rightAction: onExit,
+                    onDimTap: { showExitConfirm = false }
+                )
+                .transition(.opacity)
             }
         }
-        .background(.background)
-        .animation(.easeInOut(duration: 0.2), value: viewModel.cards)
+        .animation(.easeInOut(duration: 0.45), value: viewModel.cards)   // 카드 뒤집기 플립
         .animation(.easeInOut(duration: 0.2), value: viewModel.phase)
-    }
-
-    private var header: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Catch Your Card")
-                        .font(.largeTitle.bold())
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.75)
-
-                    Text("30초 안에 같은 생물 카드를 모두 찾아요")
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
-                }
-
-                Spacer()
-
-                TimerBadge(remainingSeconds: viewModel.remainingSeconds)
-            }
-
-            ProgressView(value: viewModel.progress)
-                .tint(viewModel.remainingSeconds <= 10 ? .red : .primary)
-
-            HStack(spacing: 10) {
-                StatPill(title: "찾은 짝", value: "\(viewModel.matchedPairCount)/6")
-                StatPill(title: "카드", value: "\(viewModel.cards.count)")
-            }
-        }
-    }
-
-    private var gameBoard: some View {
-        LazyVGrid(columns: gridColumns, spacing: 10) {
-            ForEach(viewModel.cards) { card in
-                CatchCardView(card: card) {
-                    viewModel.choose(card)
-                }
-            }
-        }
-        .padding(12)
-        .background(.thinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-        .accessibilityElement(children: .contain)
-    }
-
-    private var retryButton: some View {
-        Button {
-            viewModel.restart()
-        } label: {
-            Label("다시 도전하기", systemImage: "arrow.clockwise")
-                .frame(maxWidth: .infinity)
-        }
-        .buttonStyle(.borderedProminent)
-        .controlSize(.large)
-    }
-
-    private var resultOverlay: some View {
-        ZStack {
-            Rectangle()
-                .fill(.ultraThinMaterial)
-                .ignoresSafeArea()
-
-            VStack(spacing: 16) {
-                Image(systemName: viewModel.phase == .won ? "party.popper.fill" : "hourglass")
-                    .font(.system(size: 44, weight: .bold))
-
-                Text(viewModel.phase.title)
-                    .font(.largeTitle.bold())
-                    .multilineTextAlignment(.center)
-
-                Text(viewModel.phase.message)
-                    .font(.body)
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(.secondary)
-
-                Button {
-                    viewModel.restart()
-                } label: {
-                    Label("다시 도전하기", systemImage: "arrow.clockwise")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-            }
-            .padding(24)
-            .frame(maxWidth: 330)
-            .background(.regularMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
-            .shadow(radius: 18)
-            .padding()
-        }
+        .animation(.easeInOut(duration: 0.2), value: showExitConfirm)
     }
 }
 
-struct TimerBadge: View {
-    let remainingSeconds: Int
+// MARK: - 공용 게임 모달 (Figma 117:2652) — 애플 기본 다이얼로그 대체
+
+struct GameModal: View {
+    let title: String
+    let message: String
+    let leftTitle: String
+    let leftAction: () -> Void
+    let rightTitle: String
+    let rightAction: () -> Void
+    var onDimTap: (() -> Void)? = nil
 
     var body: some View {
-        VStack(spacing: 2) {
-            Text("\(remainingSeconds)")
-                .font(.title.bold())
-                .monospacedDigit()
-            Text("sec")
-                .font(.caption.bold())
-                .foregroundStyle(.secondary)
+        ZStack {
+            Color.black.opacity(0.3)
+                .ignoresSafeArea()
+                .onTapGesture { onDimTap?() }
+
+            VStack(spacing: 0) {
+                Text(title)
+                    .font(.system(size: 28, weight: .semibold))
+                    .tracking(-0.6)
+                    .foregroundStyle(.black)
+                    .padding(.top, 40)
+
+                Text(message)
+                    .font(.system(size: 18, weight: .medium))
+                    .tracking(-0.72)
+                    .foregroundStyle(.black.opacity(0.4))
+                    .multilineTextAlignment(.center)
+                    .padding(.top, 6)
+
+                Spacer(minLength: 0)
+
+                HStack(spacing: 8) {
+                    modalButton(leftTitle, action: leftAction)
+                    modalButton(rightTitle, action: rightAction)
+                }
+                .padding(.horizontal, 14)
+                .padding(.bottom, 18)
+            }
+            .frame(maxWidth: 344)
+            .frame(height: 192)
+            .background(Color.white, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .shadow(color: .black.opacity(0.18), radius: 24, y: 10)
+            .padding(.horizontal, 24)
         }
-        .frame(width: 68, height: 68)
-        .background(.thinMaterial)
-        .clipShape(Circle())
-        .accessibilityLabel("남은 시간 \(remainingSeconds)초")
+    }
+
+    private func modalButton(_ title: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.system(size: 16, weight: .semibold))
+                .tracking(-0.16)
+                .foregroundStyle(.white)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+                .frame(maxWidth: .infinity)
+                .frame(height: 56)
+                .background(
+                    Color(white: 0.157),   // #282828
+                    in: RoundedRectangle(cornerRadius: 15.6, style: .continuous)
+                )
+        }
+        .buttonStyle(.plain)
     }
 }
 
+/// 흰 알약 + 회색 트랙 + 노란 진행바 + 스톱워치 (Figma timer-shell).
+struct TimerBar: View {
+    let progress: Double   // 0...1
+
+    private static let track = Color(white: 0.851)                       // #d9d9d9
+    private static let fill = Color(red: 0.949, green: 1.0, blue: 0.318) // #f2ff51
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Capsule()
+                .fill(Self.track)
+                .frame(height: 11)
+                .overlay(alignment: .leading) {
+                    GeometryReader { geo in
+                        Capsule()
+                            .fill(Self.fill)
+                            .frame(width: max(0, geo.size.width * min(1, max(0, progress))))
+                    }
+                }
+
+            Image(systemName: "stopwatch.fill")
+                .font(.system(size: 25, weight: .medium))
+                .foregroundStyle(.black)
+                .frame(width: 30, height: 30)
+        }
+        .padding(.leading, 24)
+        .padding(.trailing, 11)
+        .frame(height: 45)
+        .background(Capsule().fill(.white))
+        .accessibilityHidden(true)
+    }
+}
+
+/// "30.00" 남은 시간 칩 (Figma time-chip).
+struct TimeChip: View {
+    let text: String
+
+    var body: some View {
+        Text(text)
+            .font(.system(size: 18, weight: .medium))
+            .tracking(-0.72)
+            .monospacedDigit()
+            .foregroundStyle(.black)
+            .padding(.horizontal, 12)
+            .frame(minWidth: 66)
+            .frame(height: 31)
+            .background(Capsule().fill(.white))
+            .accessibilityLabel("남은 시간 \(text)초")
+    }
+}
+
+/// 작은 통계 알약 (True or False 게임에서 사용).
 struct StatPill: View {
     let title: String
     let value: String
@@ -189,72 +762,110 @@ struct StatPill: View {
     }
 }
 
+/// 카드 — 뒷면(라임 + 조리개 + Cature) / 앞면(흰 카드 + 생물 이미지 + 이름). Figma card 스타일.
 struct CatchCardView: View {
     let card: CatchCard
     let action: () -> Void
 
+    private static let lime = Color(red: 0.937, green: 0.973, blue: 0.565)   // #eff890
+    private static let accent = Color(red: 0.769, green: 0.796, blue: 0.463) // #c4cb76
+
+    private var faceUp: Bool { card.isFaceUp || card.isMatched }
+
     var body: some View {
         Button(action: action) {
             ZStack {
-                if card.isFaceUp || card.isMatched {
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .fill(.regularMaterial)
-                } else {
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .fill(.primary)
-                }
+                // 뒷면 — 전반부(0~90°)에 보임
+                backFace
+                    .opacity(faceUp ? 0 : 1)
 
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .strokeBorder(card.isMatched ? .green : .secondary, lineWidth: card.isMatched ? 2 : 1)
-
-                if card.isFaceUp || card.isMatched {
-                    VStack(spacing: 8) {
-                        Text(card.creature.symbol)
-                            .font(.system(size: 30, weight: .bold))
-
-                        Text(card.creature.name)
-                            .font(.caption.bold())
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.7)
-                    }
-                    .padding(8)
-                } else {
-                    VStack(spacing: 8) {
-                        Text("C")
-                            .font(.system(size: 30, weight: .bold))
-
-                        Text("Cature")
-                            .font(.caption.bold())
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.7)
-                    }
-                    .foregroundStyle(.background)
-                    .padding(8)
-                }
+                // 앞면 — 후반부(90~180°)에 보임. 미러링 보정을 위해 180° 선회전.
+                frontFace
+                    .rotation3DEffect(.degrees(180), axis: (x: 0, y: 1, z: 0))
+                    .opacity(faceUp ? 1 : 0)
             }
-            .aspectRatio(0.74, contentMode: .fit)
-            .opacity(card.isMatched ? 0.68 : 1)
-            .scaleEffect(card.isFaceUp || card.isMatched ? 1 : 0.98)
             .rotation3DEffect(
-                .degrees(card.isFaceUp || card.isMatched ? 0 : 180),
-                axis: (x: 0, y: 1, z: 0)
+                .degrees(faceUp ? 180 : 0),
+                axis: (x: 0, y: 1, z: 0),
+                perspective: 0.5
             )
+            .aspectRatio(89.0 / 109.0, contentMode: .fit)
+            .opacity(card.isMatched ? 0.5 : 1)
         }
         .buttonStyle(.plain)
         .disabled(card.isMatched)
         .accessibilityLabel(card.accessibilityLabel)
+    }
+
+    // 뒷면: 라임 + 조리개 + Cature
+    private var backFace: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(Self.lime)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .strokeBorder(.black.opacity(0.18), lineWidth: 5)
+                )
+
+            VStack(spacing: 6) {
+                CardMarkShape()
+                    .fill(.black)
+                    .frame(width: 29, height: 28.84)
+                Text("Cature")
+                    .font(.system(size: 13.875, weight: .semibold))
+                    .foregroundStyle(.black)
+            }
+        }
+    }
+
+    // 앞면: 흰 카드 + 생물 이미지 + 이름
+    private var frontFace: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(Color.white)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .strokeBorder(Self.accent, lineWidth: 5)
+                )
+
+            VStack(spacing: 4) {
+                creatureImage
+                    .frame(height: 58)
+                Text(card.creature.name)
+                    .font(.system(size: 12, weight: .semibold))
+                    .tracking(-0.48)
+                    .foregroundStyle(.black)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.65)
+            }
+            .padding(.horizontal, 6)
+            .padding(.vertical, 10)
+        }
+    }
+
+    @ViewBuilder
+    private var creatureImage: some View {
+        if let imageName = card.creature.imageName {
+            Image(imageName, bundle: .module)
+                .resizable()
+                .scaledToFit()
+        } else {
+            Text(card.creature.symbol)
+                .font(.system(size: 34))
+        }
     }
 }
 
 @MainActor
 final class CatchYourCardViewModel: ObservableObject {
     @Published private(set) var cards: [CatchCard] = []
-    @Published private(set) var remainingSeconds = 30
+    @Published private(set) var remainingTime: Double = 30
     @Published private(set) var phase: CatchGamePhase = .loading
 
     private let collectionRepository: any CollectionRepository
     private let speciesRepository: any SpeciesRepository
     private var timerTask: Task<Void, Never>?
+    private var deadline: Date?
     private var openedCardIDs: [CatchCard.ID] = []
     private var isResolvingMismatch = false
     private var creatures: [CatchCreature] = []
@@ -272,25 +883,24 @@ final class CatchYourCardViewModel: ObservableObject {
     }
 
     var progress: Double {
-        Double(remainingSeconds) / Double(Self.gameDuration)
+        remainingTime / Self.gameDuration
+    }
+
+    /// "30.00" 형식의 남은 시간.
+    var timeText: String {
+        String(format: "%.2f", max(0, remainingTime))
     }
 
     func load() async {
         guard cards.isEmpty else { return }
-
-        do {
-            let loadedSpecies = try await playableSpecies()
-            creatures = Self.creatures(from: loadedSpecies)
-            restart()
-        } catch {
-            creatures = Self.fallbackCreatures
-            restart()
-        }
+        creatures = Self.themedCreatures
+        restart()
     }
 
     func restart() {
         timerTask?.cancel()
-        remainingSeconds = Self.gameDuration
+        remainingTime = Self.gameDuration
+        deadline = Date().addingTimeInterval(Self.gameDuration)
         phase = .playing
         openedCardIDs = []
         isResolvingMismatch = false
@@ -312,20 +922,6 @@ final class CatchYourCardViewModel: ObservableObject {
 
         guard openedCardIDs.count == 2 else { return }
         resolveOpenedCards()
-    }
-
-    private func playableSpecies() async throws -> [Species] {
-        let allSpecies = try await speciesRepository.allSpecies()
-        let entries = try await collectionRepository.allEntries()
-        let discoveredIDs = Set(entries.filter(\.discovered).map(\.speciesId))
-
-        if discoveredIDs.isEmpty {
-            return Array(allSpecies.prefix(Self.pairCount))
-        }
-
-        let discoveredSpecies = allSpecies.filter { discoveredIDs.contains($0.id) }
-        let remainingSpecies = allSpecies.filter { !discoveredIDs.contains($0.id) }
-        return Array((discoveredSpecies + remainingSpecies).prefix(Self.pairCount))
     }
 
     private func resolveOpenedCards() {
@@ -369,40 +965,23 @@ final class CatchYourCardViewModel: ObservableObject {
     private func startTimer() {
         timerTask = Task { [weak self] in
             while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                try? await Task.sleep(nanoseconds: 30_000_000)   // ~0.03s → 소수점 카운트다운
                 self?.tick()
             }
         }
     }
 
     private func tick() {
-        guard phase == .playing else { return }
+        guard phase == .playing, let deadline else { return }
 
-        if remainingSeconds > 1 {
-            remainingSeconds -= 1
-        } else {
-            remainingSeconds = 0
+        let remaining = deadline.timeIntervalSinceNow
+        if remaining <= 0 {
+            remainingTime = 0
             timerTask?.cancel()
             phase = cards.allSatisfy(\.isMatched) ? .won : .lost
+        } else {
+            remainingTime = remaining
         }
-    }
-
-    private static func creatures(from species: [Species]) -> [CatchCreature] {
-        var result = species.map {
-            CatchCreature(
-                id: $0.id,
-                name: $0.nameKo,
-                symbol: String($0.nameKo.prefix(1))
-            )
-        }
-
-        for fallback in fallbackCreatures where result.count < pairCount {
-            if !result.contains(where: { $0.id == fallback.id }) {
-                result.append(fallback)
-            }
-        }
-
-        return Array(result.prefix(pairCount))
     }
 
     private static func makeDeck(from creatures: [CatchCreature]) -> [CatchCard] {
@@ -416,16 +995,17 @@ final class CatchYourCardViewModel: ObservableObject {
             .shuffled()
     }
 
-    private static let gameDuration = 30
+    private static let gameDuration: Double = 30
     private static let pairCount = 6
 
-    private static let fallbackCreatures: [CatchCreature] = [
-        CatchCreature(id: "cat", name: "고양이", symbol: "고"),
-        CatchCreature(id: "chameleon", name: "카멜레온", symbol: "카"),
-        CatchCreature(id: "lizard", name: "도마뱀", symbol: "도"),
-        CatchCreature(id: "tree_frog", name: "청개구리", symbol: "청"),
-        CatchCreature(id: "ladybug", name: "무당벌레", symbol: "무"),
-        CatchCreature(id: "sparrow", name: "참새", symbol: "참"),
+    // Figma WF Mini Game 덱 — 6종(닭·파리·느티나무·드라세나·카멜레온·개미) 이미지 카드.
+    private static let themedCreatures: [CatchCreature] = [
+        CatchCreature(id: "chicken",   name: "닭",       symbol: "🐔", imageName: "chicken"),
+        CatchCreature(id: "fly",       name: "파리",     symbol: "🪰", imageName: "fly"),
+        CatchCreature(id: "tree",      name: "느티나무", symbol: "🌳", imageName: "tree"),
+        CatchCreature(id: "plant",     name: "드라세나", symbol: "🪴", imageName: "pot-plant"),
+        CatchCreature(id: "chameleon", name: "카멜레온", symbol: "🦎", imageName: "chameleon"),
+        CatchCreature(id: "ant",       name: "개미",     symbol: "🐜", imageName: "ant"),
     ]
 }
 
@@ -446,6 +1026,7 @@ struct CatchCreature: Identifiable, Equatable {
     let id: String
     let name: String
     let symbol: String
+    var imageName: String? = nil
 }
 
 enum CatchGamePhase: Equatable {
@@ -482,7 +1063,7 @@ enum CatchGamePhase: Equatable {
 }
 
 #if !CLI_BUILD
-#Preview {
+#Preview("Mini Game 메뉴") {
     RootView(
         collectionRepository: MockCollectionRepository(),
         speciesRepository: MockSpeciesRepository()

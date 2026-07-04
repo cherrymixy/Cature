@@ -3,7 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "MinigameFeature",
-    platforms: [.iOS(.v17), .macOS(.v12)],
+    platforms: [.iOS(.v17), .macOS(.v13)],
     products: [
         .library(name: "MinigameFeature", targets: ["MinigameFeature"]),
     ],
@@ -15,6 +15,9 @@ let package = Package(
             name: "MinigameFeature",
             dependencies: [
                 .product(name: "CorePackage", package: "CorePackage"),
+            ],
+            resources: [
+                .process("Resources/GameAssets.xcassets"),
             ]
         ),
     ]
