@@ -40,7 +40,7 @@ struct MiniGameMenuView: View {
     let speciesRepository: any SpeciesRepository
 
     @State private var showCatchPair = false
-    @State private var showComingSoon = false
+    @State private var showTrueOrFalse = false
 
     // 로고 + 본문 + 카드 4개를 한 그룹으로 세로 중앙 정렬.
     var body: some View {
@@ -70,15 +70,16 @@ struct MiniGameMenuView: View {
         .padding(.bottom, 96)   // 카드 세트를 GNB 위로 (여유 있는 간격)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.white)
-        .alert("준비 중이에요", isPresented: $showComingSoon) {
-            Button("확인", role: .cancel) {}
-        } message: {
-            Text("True or False 퀴즈는 곧 만나볼 수 있어요.")
-        }
         #if os(iOS)
         .fullScreenCover(isPresented: $showCatchPair) { catchPairFlow }
+        .fullScreenCover(isPresented: $showTrueOrFalse) {
+            TrueOrFalseRootView(onClose: { showTrueOrFalse = false })
+        }
         #else
         .sheet(isPresented: $showCatchPair) { catchPairFlow }
+        .sheet(isPresented: $showTrueOrFalse) {
+            TrueOrFalseRootView(onClose: { showTrueOrFalse = false })
+        }
         #endif
     }
 
@@ -93,7 +94,7 @@ struct MiniGameMenuView: View {
             Button { showCatchPair = true } label: { PairGameCard() }
                 .buttonStyle(.plain)
 
-            Button { showComingSoon = true } label: { QuizGameCard() }
+            Button { showTrueOrFalse = true } label: { QuizGameCard() }
                 .buttonStyle(.plain)
 
             LockedGameCard(levelLabel: "Lv 100 요구")
@@ -685,7 +686,7 @@ struct CatchPairSuccessView: View {
                 .fill(Color.white)
                 .overlay(
                     SpeechBubbleShape()
-                        .stroke(Color(white: 0.314), lineWidth: 1.5)   // #505050
+                        .stroke(Color(red: 0.263, green: 0.263, blue: 0.263), lineWidth: 1.5)   // #434343
                 )
                 .frame(width: 122.5, height: 71.9)
                 .offset(x: 226.2, y: 375.9)
@@ -694,7 +695,7 @@ struct CatchPairSuccessView: View {
             Text("대박~")
                 .font(.system(size: 18, weight: .medium))
                 .tracking(-0.72)
-                .foregroundStyle(.black.opacity(0.4))
+                .foregroundStyle(Color(red: 0.204, green: 0.204, blue: 0.204))   // #343434
                 .offset(x: 271, y: 400)
 
             // 버튼 (top 751): 다시 도전하기(22) / 미니게임 화면으로(201.43)
