@@ -76,5 +76,5 @@ cd Packages/CorePackage && swift test    # 계약 경계 테스트
 ### 2026-07-05 · 하단바 → Figma 133-483 최종 디자인 적용 (승아, 셸)
 > 위 이관 논의 후속. 사용자 지시로 **셸이 Figma 133-483 하단바를 최종 디자인으로 구현**.
 - **적용:** `AppShell` 하단바 = **회색 프로스트 알약**(gradient rgba(211~233,.6)+blur, 선택 탭 = 흰 전체높이 알약 아이콘+라벨, 비선택 = 아이콘만) + **로고 FAB**(`Image("logo")` = `CatureApp/Assets.xcassets/logo.imageset`, 원본 `Assets3D/logo.svg`). `DesignTokens.CatureColor.fab` = #0d0f18.
-- **탭:** 홈(house.fill)·기능(checklist)·마이(person.fill), 한국어 라벨. FAB는 발견/AR 스피드다이얼 유지.
+- **탭:** Home(house.fill)·Task(list.bullet.rectangle.fill)·My(person.fill), **영어 라벨**(Figma 그대로). 컨테이너는 넓게(가용 폭 채움, 우측 여백). FAB는 발견/AR 스피드다이얼 유지.
 - **예준 요청:** 전역 하단바는 이제 셸이 133-483로 담당하므로, `HomeFeature.RootView`의 **자체 하단바(`bottomBar`)는 제거** 부탁. 지금은 셸 바가 위를 덮어 가려지지만 중복.
