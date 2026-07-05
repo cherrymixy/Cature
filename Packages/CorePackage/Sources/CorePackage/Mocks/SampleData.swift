@@ -9,7 +9,7 @@ public enum SampleData {
     /// 큐레이션 씨앗 종 (usdz 없는 종 = AR 체험 비활성 예시 포함).
     public static let species: [Species] = [
         Species(id: "cat",       nameKo: "고양이",    category: "포유류", usdzAsset: "cat.usdz",       thumbnail: "cat"),
-        Species(id: "chameleon", nameKo: "카멜레온",  category: "파충류", usdzAsset: "chameleon.usdz", thumbnail: "chameleon"),
+        Species(id: "chameleon", nameKo: "카멜레온",  category: "파충류", usdzAsset: "Newt.usdz", thumbnail: "chameleon"),
         Species(id: "lizard",    nameKo: "도마뱀",    category: "파충류", usdzAsset: "lizard.usdz",    thumbnail: "lizard"),
         Species(id: "tree_frog", nameKo: "청개구리",  category: "양서류", usdzAsset: "tree_frog.usdz", thumbnail: "tree_frog"),
         Species(id: "ladybug",   nameKo: "무당벌레",  category: "곤충",   usdzAsset: nil,              thumbnail: "ladybug"),
