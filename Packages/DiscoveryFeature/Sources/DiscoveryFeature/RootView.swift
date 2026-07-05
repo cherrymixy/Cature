@@ -21,7 +21,8 @@ public struct RootView: View {
     }
 
     public var body: some View {
-        if case .camera = vm.step {
+        switch vm.step {
+        case .camera:
             CameraScreen(
                 controller: controller,
                 onCaptured: { url in Task { await vm.ingest(url) } },
@@ -29,7 +30,24 @@ public struct RootView: View {
                 onClose: onClose
             )
             .preferredColorScheme(.dark)
-        } else {
+
+        case .coexist(let card, let species, let candidate):
+            // 발견 정보 — 자체 back·전체화면 (Figma 132:715)
+            CoexistCardView(vm: vm, card: card, species: species, candidate: candidate,
+                            onBack: { handleBack() })
+                .preferredColorScheme(.light)
+
+        case .collected(let name, let count, let rate, let canExperience):
+            // 획득 완료 — 전체화면 (Figma 118:729)
+            CollectedView(
+                name: name, captureCount: count, achievement: rate,
+                canExperience: canExperience,
+                onExperience: onEnterExperience,
+                onConfirm: { onClose?() }
+            )
+            .preferredColorScheme(.light)
+
+        default:
             ZStack {
                 CatureColor.surface.ignoresSafeArea()
                 VStack(spacing: 0) {
@@ -77,15 +95,8 @@ public struct RootView: View {
             AnalysisView(vm: vm, candidates: candidates)
         case .notFound:
             NotFoundView(onRetake: { vm.retake() })
-        case .coexist(let card, let species, let candidate):
-            CoexistCardView(vm: vm, card: card, species: species, candidate: candidate)
-        case .collected(let name, let count, let rate, let canExperience):
-            CollectedView(
-                name: name, captureCount: count, achievement: rate,
-                canExperience: canExperience,
-                onExperience: onEnterExperience,
-                onConfirm: { onClose?() }
-            )
+        case .coexist, .collected:
+            EmptyView()   // 위 body switch에서 전체화면으로 처리
         }
     }
 }

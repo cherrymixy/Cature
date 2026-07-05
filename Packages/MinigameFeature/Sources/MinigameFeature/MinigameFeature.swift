@@ -40,7 +40,7 @@ struct MiniGameMenuView: View {
     let speciesRepository: any SpeciesRepository
 
     @State private var showCatchPair = false
-    @State private var showComingSoon = false
+    @State private var showTrueOrFalse = false
 
     // 로고 + 본문 + 카드 4개를 한 그룹으로 세로 중앙 정렬.
     var body: some View {
@@ -65,22 +65,21 @@ struct MiniGameMenuView: View {
                     .padding(.top, 40)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-
-            Spacer(minLength: 0)
         }
         .padding(.horizontal, 25)
-        .padding(.bottom, 88)   // 하단 탭바(GNB)와 안 겹치게
+        .padding(.bottom, 96)   // 카드 세트를 GNB 위로 (여유 있는 간격)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.white)
-        .alert("준비 중이에요", isPresented: $showComingSoon) {
-            Button("확인", role: .cancel) {}
-        } message: {
-            Text("True or False 퀴즈는 곧 만나볼 수 있어요.")
-        }
         #if os(iOS)
         .fullScreenCover(isPresented: $showCatchPair) { catchPairFlow }
+        .fullScreenCover(isPresented: $showTrueOrFalse) {
+            TrueOrFalseRootView(onClose: { showTrueOrFalse = false })
+        }
         #else
         .sheet(isPresented: $showCatchPair) { catchPairFlow }
+        .sheet(isPresented: $showTrueOrFalse) {
+            TrueOrFalseRootView(onClose: { showTrueOrFalse = false })
+        }
         #endif
     }
 
@@ -95,7 +94,7 @@ struct MiniGameMenuView: View {
             Button { showCatchPair = true } label: { PairGameCard() }
                 .buttonStyle(.plain)
 
-            Button { showComingSoon = true } label: { QuizGameCard() }
+            Button { showTrueOrFalse = true } label: { QuizGameCard() }
                 .buttonStyle(.plain)
 
             LockedGameCard(levelLabel: "Lv 100 요구")
@@ -534,6 +533,7 @@ struct CatchYourCardView: View {
     let onExit: () -> Void   // 게임 종료 → 허브로 나가기
 
     @State private var showExitConfirm = false
+    @State private var showSuccess = false   // 승리 → 성공 페이지
 
     private let gridColumns = Array(
         repeating: GridItem(.flexible(), spacing: 12),
@@ -583,11 +583,11 @@ struct CatchYourCardView: View {
                 Spacer(minLength: 0)
             }
 
-            // 타임아웃 / 승리 결과 모달 (Figma 117:2652)
-            if viewModel.phase.showsOverlay {
+            // 타임아웃(패배) 모달 (Figma 117:2652). 승리는 성공 페이지로 이동.
+            if viewModel.phase == .lost {
                 GameModal(
-                    title: viewModel.phase == .won ? "Clear!" : "Time Out!",
-                    message: viewModel.phase == .won ? "모든 짝을 맞췄어요!" : "시간이 종료되었어요!",
+                    title: "Time Out!",
+                    message: "시간이 종료되었어요!",
                     leftTitle: "다시 도전하기",
                     leftAction: { viewModel.restart() },
                     rightTitle: "미니게임 화면으로",
@@ -611,6 +611,156 @@ struct CatchYourCardView: View {
         .animation(.easeInOut(duration: 0.45), value: viewModel.cards)   // 카드 뒤집기 플립
         .animation(.easeInOut(duration: 0.2), value: viewModel.phase)
         .animation(.easeInOut(duration: 0.2), value: showExitConfirm)
+        #if os(iOS)
+        .onChange(of: viewModel.phase) { _, newPhase in
+            if newPhase == .won { showSuccess = true }
+        }
+        .navigationDestination(isPresented: $showSuccess) {
+            CatchPairSuccessView(
+                onRetry: { showSuccess = false; viewModel.restart() },
+                onHome: onExit
+            )
+        }
+        #endif
+    }
+}
+
+// MARK: - 성공 페이지 (Figma Lab Void — Congratulation!)
+
+struct CatchPairSuccessView: View {
+    let onRetry: () -> Void
+    let onHome: () -> Void
+
+    var body: some View {
+        ZStack(alignment: .topLeading) {
+            Color(white: 0.949)   // #f2f2f2
+
+            Image("success-bg", bundle: .module)
+                .resizable()
+                .scaledToFill()
+                .frame(width: 393, height: 852)
+                .clipped()
+                .allowsHitTesting(false)
+
+            // 뒤로 (36.6, 61.3)
+            Button(action: onHome) {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundStyle(Color(white: 0.42))
+                    .frame(width: 30, height: 30, alignment: .leading)
+            }
+            .accessibilityLabel("뒤로가기")
+            .offset(x: 33, y: 54)
+
+            // 타이틀 (top 278)
+            Text("Congratulation!")
+                .font(.system(size: 28, weight: .semibold))
+                .tracking(-1.0)
+                .foregroundStyle(.black)
+                .frame(width: 393, alignment: .center)
+                .offset(y: 278)
+
+            // 부제 (top 323)
+            Text("카드를 다 찾는데에 성공했어요!")
+                .font(.system(size: 18, weight: .medium))
+                .tracking(-0.72)
+                .foregroundStyle(.black.opacity(0.4))
+                .frame(width: 393, alignment: .center)
+                .offset(y: 323)
+
+            // 캐릭터 마스크 (118, 401) 155×164 · 이미지 218.6×193.1 offset(-30.75,-12.8)
+            Color.clear
+                .frame(width: 155, height: 164)
+                .overlay(alignment: .topLeading) {
+                    Image("success-character", bundle: .module)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 218.6, height: 193.1)
+                        .offset(x: -30.75, y: -12.8)
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .offset(x: 118, y: 401)
+
+            // 말풍선 (226.2, 375.9) 122.5×71.9
+            SpeechBubbleShape()
+                .fill(Color.white)
+                .overlay(
+                    SpeechBubbleShape()
+                        .stroke(Color(red: 0.263, green: 0.263, blue: 0.263), lineWidth: 1.5)   // #434343
+                )
+                .frame(width: 122.5, height: 71.9)
+                .offset(x: 226.2, y: 375.9)
+
+            // 말풍선 텍스트 "대박~" (271, 400)
+            Text("대박~")
+                .font(.system(size: 18, weight: .medium))
+                .tracking(-0.72)
+                .foregroundStyle(Color(red: 0.204, green: 0.204, blue: 0.204))   // #343434
+                .offset(x: 271, y: 400)
+
+            // 버튼 (top 751): 다시 도전하기(22) / 미니게임 화면으로(201.43)
+            Button(action: onRetry) { successButton("다시 도전하기") }
+                .buttonStyle(.plain)
+                .offset(x: 22, y: 751)
+
+            Button(action: onHome) { successButton("미니게임 화면으로") }
+                .buttonStyle(.plain)
+                .offset(x: 201.43, y: 751)
+        }
+        .frame(width: 393, height: 852, alignment: .topLeading)
+        .clipped()
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(white: 0.949))
+        .ignoresSafeArea()
+        #if os(iOS)
+        .navigationBarBackButtonHidden(true)
+        .toolbar(.hidden, for: .navigationBar)
+        #endif
+    }
+
+    private func successButton(_ title: String) -> some View {
+        Text(title)
+            .font(.system(size: 16, weight: .semibold))
+            .tracking(-0.16)
+            .foregroundStyle(.white)
+            .frame(width: 170.57, height: 56)
+            .background(
+                Color(white: 0.157),   // #282828
+                in: RoundedRectangle(cornerRadius: 15.6, style: .continuous)
+            )
+    }
+}
+
+/// 말풍선 (speech.svg 좌표 그대로). 우하단 꼬리가 왼쪽 아래를 향함.
+struct SpeechBubbleShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        var p = Path()
+        p.move(to: CGPoint(x: 61.2563, y: 0.75625))
+        p.addCurve(to: CGPoint(x: 121.756, y: 35.9223),
+                   control1: CGPoint(x: 94.6695, y: 0.75625), control2: CGPoint(x: 121.756, y: 16.5008))
+        p.addCurve(to: CGPoint(x: 61.2563, y: 71.0873),
+                   control1: CGPoint(x: 121.756, y: 55.3435), control2: CGPoint(x: 94.6693, y: 71.0873))
+        p.addCurve(to: CGPoint(x: 23.2076, y: 63.2602),
+                   control1: CGPoint(x: 46.8391, y: 71.0873), control2: CGPoint(x: 33.6012, y: 68.1534))
+        p.addCurve(to: CGPoint(x: 20.9382, y: 63.4166),
+                   control1: CGPoint(x: 22.4742, y: 62.915), control2: CGPoint(x: 21.613, y: 62.9675))
+        p.addLine(to: CGPoint(x: 11.2108, y: 69.8903))
+        p.addCurve(to: CGPoint(x: 7.89212, y: 67.0546),
+                   control1: CGPoint(x: 9.30766, y: 71.1568), control2: CGPoint(x: 6.93794, y: 69.132))
+        p.addLine(to: CGPoint(x: 11.8473, y: 58.4437))
+        p.addCurve(to: CGPoint(x: 11.2096, y: 55.6843),
+                   control1: CGPoint(x: 12.2853, y: 57.4902), control2: CGPoint(x: 12.0076, y: 56.3656))
+        p.addCurve(to: CGPoint(x: 0.75625, y: 35.9223),
+                   control1: CGPoint(x: 4.61315, y: 50.052), control2: CGPoint(x: 0.756387, y: 43.2496))
+        p.addCurve(to: CGPoint(x: 61.2563, y: 0.75625),
+                   control1: CGPoint(x: 0.75625, y: 16.5008), control2: CGPoint(x: 27.843, y: 0.75625))
+        p.closeSubpath()
+
+        let scale = CGAffineTransform(
+            scaleX: rect.width / 122.512,
+            y: rect.height / 71.8436
+        )
+        return p.applying(scale)
     }
 }
 
