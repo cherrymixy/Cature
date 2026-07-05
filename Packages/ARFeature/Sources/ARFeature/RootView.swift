@@ -96,54 +96,37 @@ struct ARStageView: View {
                 Spacer()
             }
 
-            // 상단 상태 배너 + 하단 이름 라벨
-            VStack(spacing: CatureSpacing.sm) {
-                banner
-                if lowLight, status != .unsupported, status != .assetMissing {
-                    hint("조명이 부족해요", "밝은 곳에서 더 잘 인식돼요")
-                }
+            // 상단 가이드 pill (Figma 118:818)
+            VStack {
+                guidancePill
                 Spacer()
-                nameLabel.padding(.bottom, CatureSpacing.xl)
             }
-            .padding(.top, CatureSpacing.xxl)
+            .padding(.top, 62)
         }
     }
 
-    private var nameLabel: some View {
-        Text(species.nameKo)
-            .font(.system(size: 13, weight: .bold))
-            .foregroundStyle(.white.opacity(0.9))
-            .padding(.horizontal, 14)
-            .padding(.vertical, 7)
-            .background(Color(red: 0.157, green: 0.157, blue: 0.157), in: Capsule())   // #282828
+    // 흰 반투명 pill 안내 (Figma: 평면 위를 클릭해 배치해 보세요!)
+    @ViewBuilder private var guidancePill: some View {
+        if let text = guidanceText {
+            Text(text)
+                .font(.system(size: 16))
+                .tracking(-0.8)
+                .foregroundStyle(Color(white: 0.478))   // #7a7a7a
+                .padding(.horizontal, 20)
+                .frame(height: 38)
+                .background(Color.white.opacity(0.85), in: Capsule())
+                .overlay(Capsule().stroke(.black.opacity(0.05)))
+                .shadow(color: .black.opacity(0.12), radius: 8, y: 2)
+        }
     }
 
-    @ViewBuilder private var banner: some View {
+    private var guidanceText: String? {
         switch status {
-        case .unsupported:
-            hint("이 기기는 AR을 지원하지 않아요", "실기기(iPhone)에서 체험할 수 있어요")
-        case .findingPlane:
-            hint("평면을 찾는 중…", "바닥이나 테이블을 천천히 비춰주세요")
-        case .readyToPlace:
-            hint("화면을 탭해 \(species.nameKo)를 놓아보세요", "드래그·회전·핀치로 조작")
-        case .assetMissing:
-            hint("체험 에셋이 없어요", "\(species.usdzAsset ?? "usdz")를 Assets3D에 추가하세요")
-        case .placed:
-            EmptyView()
+        case .findingPlane, .readyToPlace: return "평면 위를 클릭해 배치해 보세요!"
+        case .unsupported:                 return "이 기기는 AR을 지원하지 않아요"
+        case .assetMissing:                return "체험 에셋이 없어요"
+        case .placed:                      return lowLight ? "조명이 부족해요, 밝은 곳에서 더 잘 보여요" : nil
         }
-    }
-
-    private func hint(_ title: String, _ subtitle: String?) -> some View {
-        VStack(spacing: 2) {
-            Text(title).font(CatureFont.headline).foregroundStyle(.white)
-            if let subtitle {
-                Text(subtitle).font(CatureFont.caption).foregroundStyle(.white.opacity(0.8))
-            }
-        }
-        .multilineTextAlignment(.center)
-        .padding(CatureSpacing.md)
-        .background(.black.opacity(0.5))
-        .clipShape(RoundedRectangle(cornerRadius: CatureRadius.md, style: .continuous))
     }
 }
 
@@ -153,21 +136,29 @@ struct SpeciesSelector: View {
     let onSelect: (Species) -> Void
 
     var body: some View {
-        VStack(spacing: CatureSpacing.sm) {
+        VStack(spacing: 14) {
             ForEach(all) { species in
                 let isSelected = species.id == selectedId
                 Button { onSelect(species) } label: {
                     Text(String(species.nameKo.prefix(1)))
-                        .font(.system(size: isSelected ? 22 : 16, weight: .bold))
-                        .foregroundStyle(isSelected ? CatureColor.accent : CatureColor.textSecondary)
-                        .frame(width: isSelected ? 60 : 44, height: isSelected ? 60 : 44)
-                        .background(CatureColor.surface, in: Circle())
-                        .overlay(Circle().stroke(CatureColor.accent, lineWidth: isSelected ? 3 : 0))
-                        .shadow(color: .black.opacity(0.2), radius: 5, y: 2)
+                        .font(.system(size: isSelected ? 24 : 17, weight: .bold))
+                        .foregroundStyle(isSelected ? .black : .black.opacity(0.5))
+                        .frame(width: isSelected ? 72 : 51, height: isSelected ? 72 : 51)
+                        .background(isSelected ? CatureColor.lime : Color.white, in: Circle())
+                        .shadow(color: .black.opacity(0.18), radius: 6, y: 2)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(species.nameKo)
             }
+
+            // 더보기 (Figma) — 다크 원형
+            ZStack {
+                Circle().fill(Color(white: 0.157))
+                Image(systemName: "line.3.horizontal")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(.white)
+            }
+            .frame(width: 51, height: 51)
         }
     }
 }
