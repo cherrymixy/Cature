@@ -35,6 +35,27 @@ flowchart LR
 
 ---
 
+## 📱 화면
+
+<table>
+  <tr>
+    <td align="center" width="25%"><img src="docs/screenshots/01_home.png" width="190"/><br/><sub><b>발견 지도</b><br/>주변 생명을 핀으로</sub></td>
+    <td align="center" width="25%"><img src="docs/screenshots/06_coexist.png" width="190"/><br/><sub><b>공존 카드</b><br/>필요 조건 · 방해 행동</sub></td>
+    <td align="center" width="25%"><img src="docs/screenshots/07_collected.png" width="190"/><br/><sub><b>획득 완료</b><br/>수집 연출</sub></td>
+    <td align="center" width="25%"><img src="docs/screenshots/03_dex.png" width="190"/><br/><sub><b>도감</b><br/>카테고리 필터 · 그리드</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/02_hub.png" width="190"/><br/><sub><b>미니게임 허브</b><br/>게임 선택</sub></td>
+    <td align="center"><img src="docs/screenshots/05_cardgame.png" width="190"/><br/><sub><b>카드 짝맞추기</b><br/>Catch Your Card</sub></td>
+    <td align="center"><img src="docs/screenshots/04_quiz.png" width="190"/><br/><sub><b>OX 퀴즈</b><br/>True or False</sub></td>
+    <td align="center"><sub>🪄 <b>AR 체험</b><br/>usdz 모델을 평면에<br/><i>(실기기 전용)</i></sub></td>
+  </tr>
+</table>
+
+> 실기기 iPhone에서 실제 카메라·위치로 동작합니다. 위 화면은 시뮬레이터 캡처.
+
+---
+
 ## 🎮 주요 기능
 
 | | 기능 | 설명 |
