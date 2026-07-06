@@ -21,8 +21,14 @@
 ![AI](https://img.shields.io/badge/AI-OpenAI%20LLM-10a37f?logo=openai&logoColor=white)
 ![Package](https://img.shields.io/badge/SPM-10%20local%20packages-orange?logo=swift&logoColor=white)
 ![Status](https://img.shields.io/badge/MVP-완성-3ddc84)
+![Award](https://img.shields.io/badge/Lab_Void_바이브코딩_해커톤-1위%20Winner-F5B301?labelColor=1a1a1a)
 
-<sub>1st Hackathon · Team LAB VOID · Seunga Jeon · Chanhee Shin · Yejun Choi</sub>
+<sub>🏆 1위 Winner · Team LAB VOID · Seunga Jeon · Chanhee Shin · Yejun Choi</sub>
+
+<br/>
+
+> 🏆 **Lab Void 바이브코딩 해커톤 1위(Winner)**
+> 홍익대학교 UX/UI 소모임 **Lab Void** — *디자이너들끼리* 진행한 바이브코딩 해커톤에서, AI 코딩 도구로 직접 만든 iOS 앱으로 **1위**를 차지했습니다.
 
 </div>
 
@@ -380,6 +386,6 @@ cd Packages/CorePackage && swift build
 
 **🌿 Cature** — 발견에서 공존으로.
 
-<sub>Catch + Nature · 1st Hackathon · Team LAB VOID</sub>
+<sub>Catch + Nature · 🏆 Lab Void 바이브코딩 해커톤 1위 · Team LAB VOID</sub>
 
 </div>
