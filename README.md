@@ -358,7 +358,7 @@ cd Packages/CorePackage && swift build
 
 | 이름 | 도구 | 담당 |
 |---|---|---|
-| **승아** | Claude Code | 초기 세팅 · 코어/계약 · 발견 플로우 · AR |
+| **승아** | Claude Code | 초기 세팅 · 발견 플로우 · AR |
 | **찬희** | Codex | 도감 · 미니게임 |
 | **예준** | Codex | 홈 · 온보딩 |
 
